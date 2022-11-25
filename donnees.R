@@ -1,6 +1,12 @@
 library(CASdatasets)
 ?CASdatasets
 
+#Cours de LaTeX le 16 janvier
+#l'avoir préparer avant peut etre utile
+#MarkDown sur Rstudio pour rediger du LaTeX sans etre aussi rigoureux
+#outil assez puissant car plus souple
+#Bien faire les bibliographies avec des noms de référence clicables
+
 #freMPL veut dire French Motor Personal Line datasets
 #On utilisera le dataset 5 qui contient environ 26000 contrats de l'annee 2004
 
@@ -92,10 +98,17 @@ data(freMPL5)
 
 #On devra introduire une nouvelle variable pour la frequence (a expliquer :
 #Freq = ClaimNbResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb)
-#Devra-t-on la diviser par 4 pour obtenir une moyenne sur 1 an plutot que sur 4 ans
+#Devra-t-on la diviser par 4 (oui) pour obtenir une moyenne sur 1 an plutot que sur 4 ans
 
 #Ensuite, on introduira une nouvelle variable sur le cout moyen (a expliquer :
 #CoutMoyen = ClaimAmount[pour les assures ayant eu au moins un sinistre]/NbSinistres[de cet assuré])
 
 #Questions : Pourquoi certains assures possedent un montant reclame negatif ?
 #S'agit-il d'une regularisation suite a un avancement trop important ?
+
+freMPL5$Freq = (freMPL5$ClaimNbResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb)/4
+freMPL5$Cout = ifelse(freMPL5$Freq == 0, 0, freMPL5$Amount/freMPL5$Freq)
+#ce code ne fonctionne pas car R comprend mal la division a faire ici ?
+
+summary(freMPL5)
+

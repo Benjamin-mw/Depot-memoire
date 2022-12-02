@@ -112,3 +112,8 @@ freMPL5$Cout = ifelse(freMPL5$Freq != 0, freMPL5$Amount/freMPL5$Freq, 0)
 
 summary(freMPL5)
 
+x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19)]
+
+y <- princomp(x, cor = FALSE, scores = TRUE)
+#C'est une ACP sur les données quantitatives (on a ici considéré la zone
+#comme faisant partie des variables quantitatives car c'est "possibly ordered")

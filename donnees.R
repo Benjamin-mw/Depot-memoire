@@ -3,7 +3,7 @@ library(CASdatasets)
 
 #Cours de LaTeX le 16 janvier
 #l'avoir préparer avant peut etre utile
-#MarkDown sur Rstudio pour rediger du LaTeX sans etre aussi rigoureux
+#MarkDown ou (Quorto ?) sur Rstudio pour rediger du LaTeX sans etre aussi rigoureux
 #outil assez puissant car plus souple
 #Bien faire les bibliographies avec des noms de référence clicables
 
@@ -107,7 +107,7 @@ data(freMPL5)
 #S'agit-il d'une regularisation suite a un avancement trop important ?
 
 freMPL5$Freq = (freMPL5$ClaimNbResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb)/4
-freMPL5$Cout = ifelse(freMPL5$Freq == 0, 0, freMPL5$Amount/freMPL5$Freq)
+freMPL5$Cout = ifelse(freMPL5$Freq != 0, freMPL5$Amount/freMPL5$Freq, 0)
 #ce code ne fonctionne pas car R comprend mal la division a faire ici ?
 
 summary(freMPL5)

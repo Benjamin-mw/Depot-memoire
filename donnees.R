@@ -84,6 +84,7 @@ data(freMPL5)
 
 #20 --- ClaimInd
 #Claim indicator of the guarantee. (this is not the claim number)
+#a-t-il reclame de l'argent
 
 
 #Exposure est une variable relatant de la duree d'un contrat (en fraction d'annee)
@@ -91,7 +92,6 @@ data(freMPL5)
 #On devra alors supposer que les fréquences et couts sont independants de la 
 #periode de l'annee pour l'utiliser convenablement
 
-#Qu'est-ce que le ClaimInd et le ClaimNbParking ?
 
 #Faut-il mettre les accidents non-responsables dans le calcul de fréquence ?
 #Ou alors est-ce a l'assureur du responsable de dédomager ?
@@ -109,11 +109,19 @@ data(freMPL5)
 freMPL5$Freq = (freMPL5$ClaimNbResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb)/4
 freMPL5$Cout = ifelse(freMPL5$Freq != 0, freMPL5$Amount/freMPL5$Freq, 0)
 #ce code ne fonctionne pas car R comprend mal la division a faire ici ?
+for(i in freMPL5$Cout) ifelse(freMPL5$Freq[i] != 0, freMPL5$Amount[i]/freMPL5$Freq[i], 0)
 
 summary(freMPL5)
 
 x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19)]
 
 y <- princomp(x, cor = FALSE, scores = TRUE)
+y
 #C'est une ACP sur les données quantitatives (on a ici considéré la zone
 #comme faisant partie des variables quantitatives car c'est "possibly ordered")
+
+plot(y)
+print(y)
+
+z <- princomp(x, cor = FALSE, scores = TRUE)
+biplot(z)

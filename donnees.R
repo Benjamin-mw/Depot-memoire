@@ -92,24 +92,15 @@ data(freMPL5)
 #On devra alors supposer que les fréquences et couts sont independants de la 
 #periode de l'annee pour l'utiliser convenablement
 
-
-#Faut-il mettre les accidents non-responsables dans le calcul de fréquence ?
-#Ou alors est-ce a l'assureur du responsable de dédomager ?
-
-#On devra introduire une nouvelle variable pour la frequence (a expliquer :
-#Freq = ClaimNbResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb)
-#Devra-t-on la diviser par 4 (oui) pour obtenir une moyenne sur 1 an plutot que sur 4 ans
-
 #Ensuite, on introduira une nouvelle variable sur le cout moyen (a expliquer :
 #CoutMoyen = ClaimAmount[pour les assures ayant eu au moins un sinistre]/NbSinistres[de cet assuré])
 
 #Questions : Pourquoi certains assures possedent un montant reclame negatif ?
 #S'agit-il d'une regularisation suite a un avancement trop important ?
 
-freMPL5$Freq = (freMPL5$ClaimNbResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb)/4
-freMPL5$Cout = ifelse(freMPL5$Freq != 0, freMPL5$Amount/freMPL5$Freq, 0)
-#ce code ne fonctionne pas car R comprend mal la division a faire ici ?
-for(i in freMPL5$Cout) ifelse(freMPL5$Freq[i] != 0, freMPL5$Amount[i]/freMPL5$Freq[i], 0)
+freMPL5$Freq = ifelse(freMPL5$ClaimNbNonResp+freMPL5$ClaimNbResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb > 0, 1, 0)
+
+cout_moyen = mean(freMPL5$ClaimAmount)
 
 summary(freMPL5)
 

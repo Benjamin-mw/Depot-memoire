@@ -1,6 +1,6 @@
 #install.packages("CASdatasets", repos = "http://dutangc.perso.math.cnrs.fr/RRepository/", type="source")
 #install.packages("CASdatasets", repos = "http://dutangc.free.fr/pub/RRepos/", type="source")
-install.packages("CASdatasets", repos = "http://cas.uqam.ca/pub/", type="source")
+#install.packages("CASdatasets", repos = "http://cas.uqam.ca/pub/", type="source")
 
 #library(CASdatasets)
 install.packages("rpart")

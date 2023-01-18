@@ -1,4 +1,4 @@
-library(CASdatasets)
+library(CASdat asets)
 data(freMPL5)
 #On a dans ce dataset 20 variables :
 

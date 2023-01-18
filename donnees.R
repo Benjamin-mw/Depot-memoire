@@ -8,11 +8,20 @@ library(CASdatasets)
 #On utilisera le dataset 5 qui contient environ 26000 contrats de l'annee 2004
 
 data(freMPL5)
+summary(freMPL5)
 
 #Cette variable est-elle utile ?
 freMPL5$Freq = factor(ifelse(freMPL5$ClaimNbNonResp+freMPL5$ClaimNbResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb > 0, 1, 0))
 
 cout_moyen = mean(freMPL5$ClaimAmount)
+
+
+plot(freMPL5$ClaimAmount ~ freMPL5$Gender)
+#observation d'un cas extrême où le coût d'un sinistre chez une femme s'élève à 95151 euros
+boxplot(freMPL5$ClaimAmount)
+#observation de deux coûts de sinistres bien au dessus des autres
+
+plot(freMPL5$ClaimAmount ~ freMPL5$Freq)
 
 x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19)]
 

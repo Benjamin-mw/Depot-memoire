@@ -61,9 +61,11 @@ mca.graph(res.mca, choix = "var", axes = 1)
 
 #Un premier modèle linéaire généralisé de loi gamma
 data_cout = select(freMPL5[freMPL5$ClaimInd == 1, ], -c("ClaimInd", "IntervalCout","Freq","RecordBeg", "RecordEnd"))
-mod0 <- glm(ClaimAmount~. , data = data_cout, family=Gamma(link="inverse"))
+summary(data_cout)
+mod0 <- glm(ClaimAmount~LicAge , data = data_cout, family=Gamma(link="inverse"))
 summary(mod0)
 
 #Etude des résidus de Pearson et de Deviance
 residus.P = residuals(mod0, type="pearson")
 residus.D = residuals(mod0, type="deviance")
+

@@ -35,7 +35,7 @@ library(plotROC)
 ## Documentation et import du dataset
 
 ```{r}
-?CASdatasets
+?CASdatasets #ouvre l'aide pour comprendre le dataset
 
 data(freMPL5)
 

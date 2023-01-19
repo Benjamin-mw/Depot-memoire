@@ -67,3 +67,10 @@ hist(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1]) #de nouveau écrasé dans les p
 #Pour mieux voir la potentielle distribution, nous allons essayer de zoomer vers les petites valeurs
 hist(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1], breaks=seq(0,100000,10),xlim=c(0,3000))
 #Voilà donc un graphique qui donne plus d'informations
+
+
+#tests faits ici car ilisible sur le document rmd
+summary(freMPL5[freMPL5$ClaimAmount>0,])
+summary(freMPL5[freMPL5$ClaimAmount<110 & freMPL5$ClaimAmount>90,])
+summary(freMPL5[freMPL5$ClaimInd == 0,])
+summary(freMPL5[freMPL5$ClaimInd == 1,])

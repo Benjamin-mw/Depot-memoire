@@ -1,0 +1,136 @@
+---
+title: "Analyse des données"
+output: html_document
+date: "2023-01-19"
+---
+
+## Import de packages utiles
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(CASdatasets)
+library(tidyverse)
+library(MASS)
+library(knitr)
+library(ggplot2)
+library(cowplot)
+library(reshape2)
+library(dplyr)
+library(GGally)
+library(corrplot)
+library(carData) 
+library(car)
+library(questionr)
+library(multcomp)
+library(dplyr)
+library(leaps)
+library(TeachingDemos)
+library(FactoMineR)
+library(factoextra)
+library(ROCR)
+library(plotROC)
+```
+
+## Documentation et import du dataset
+
+```{r}
+?CASdatasets
+
+data(freMPL5)
+
+summary(freMPL5)
+```
+
+freMPL veut dire French Motor Personal Line datasets. On utilisera le dataset 5 qui contient environ 26000 contrats de l'annee 2004.
+
+On a ici un premier résumé des variables.
+
+On remarque que certaines variables sont numériques au lieu d'être considérées comme des facteurs. Nous allons donc les changer :
+
+```{r}
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimNbResp <- factor(freMPL5$ClaimNbResp)
+freMPL5$ClaimNbNonResp <- factor(freMPL5$ClaimNbNonResp)
+freMPL5$ClaimNbParking <- factor(freMPL5$ClaimNbParking)
+freMPL5$ClaimNbFireTheft <- factor(freMPL5$ClaimNbFireTheft)
+freMPL5$ClaimNbWindscreen <- factor(freMPL5$ClaimNbWindscreen)
+freMPL5$OutUseNb <- factor(freMPL5$OutUseNb)
+```
+
+#### Coefficient de bonus-malus
+
+Pour le coefficient de bonus-malus, il commence à 1 et peut descendre jusqu'à 0.5 si le conducteur n'a pas d'accidents responsables ou semi-responsables. A l'inverse, en cas d'accidents responsables, le coefficient augmente et peut atteindre jusqu'à 3.5. Dans le jeu de données, toutes les valeurs sont multipliées par 100 ce qui ne posera aucun problème dans le cas de nos modèles. Cependant, si on veut voir l'impact linéaire du coefficient de bonus-malus, il pourrait être intéressant de revoir son échelle en retranchant 100 par exemple à la variable.
+
+Dans notre jeu de données, la valeur maximale est 1.85. Nous n'avons donc aucune information sur des éventuels assurés possédant un malus supérieur. Cela pourra donc être compliqué de prédire les primes d'assurances pour ce genre d'assurés. De manière générale, ici on a princialement des bons conducteurs puisque la médianne vaut 0.5 et le 3eme quartile 0.6 et 95% des assurés sont en dessous de 0.90.
+
+```{r}
+summary(freMPL5$BonusMalus)
+
+quantile(freMPL5$BonusMalus, seq(0,1,0.05))
+```
+
+### Etude de la variables coût
+
+##### ...en fonction de la sinistralité
+
+```{r echo=TRUE}
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimInd)
+```
+
+```{r echo=TRUE}
+summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1]) #resumé lorsque de l'argent est demandé
+summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 0])
+```
+
+On remarque donc l'apparition de quelques données étranges. En effet, on a l'apparition de variables de coût négatives. Ceci est du à une régularisation. ne pouvant pas traiter cela, nous supprimerons les lignes correspondantes qui sont au nombre de 278.
+
+```{r}
+sum(ifelse(freMPL5$ClaimAmount[freMPL5$ClaimInd == 0]<0,1,0)) #=278
+```
+
+Nous supprimons alors les lignes en questions :
+
+```{r}
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+```
+
+Nous avons autrement une distribution des coût qui est relativement proche de 0 avec tout de même l'apparition de quelques sinistres graves qui faussent la moyenne :
+
+```{r}
+hist(freMPL5$ClaimAmount) #écrasé par 0 car il y a énormément de petits sinistres
+hist(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1]) #de nouveau écrasé dans les petites valeurs
+```
+
+Pour mieux voir la potentielle distribution, nous allons essayer de zoomer vers les petites valeurs :
+
+```{r}
+hist(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1], breaks=seq(0,100000,10),xlim=c(0,4000))
+```
+
+On a ici un graphique plus intéressant qui nous permettra de proposer éventuellement une loi pour la variable de coût. On remarque tout de fois quelques énormes pics de fréquence. Nous pouvons imaginer qu'il s'agit d'une dépense forfaitaire (comme par exemple un bris de glace qui s'en rapproche à cause de Carglass en France).
+
+On remarque un premier pic entre 90 et 110 et un autre 1410 et 1420. Regardons à quoi cela pourrait être dû :
+
+```{r}
+summary(freMPL5[freMPL5$ClaimAmount<110 & freMPL5$ClaimAmount>90,])
+```
+
+On remarque que cette tranche représente 8,7% des assurés qui ont eu recours à un remboursement.
+
+### Etude de la variable d'indication de remboursement
+
+```{r}
+summary(freMPL5[freMPL5$ClaimInd == 0,])
+summary(freMPL5[freMPL5$ClaimInd == 1,])
+```
+
+On remarque que LicAge et DrivAge réduisent le risque d'avoir un sinistre.
+
+De même, plus le score de malus est haut et plus l'assuré a de risque d'avoir un sinistre.
+
+Avoir une limite de kilomètres semblent aussi réduire les risques.
+
+Pour les catégories sociaux-professionnelles, il faudra faire une étude plus poussée avant de conclure.

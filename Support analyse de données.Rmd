@@ -36,14 +36,10 @@ library(plotROC)
 
 ```{r}
 ?CASdatasets #ouvre l'aide pour comprendre le dataset
-
 data(freMPL5)
-
 summary(freMPL5)
-
 #Cette nouvelle covariable sera présentée plus tard
 freMPL5$ObtLic <- ceiling(freMPL5$DrivAge - freMPL5$LicAge/12)
-
 x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19,20,21)]
 corrplot(round(cor(x),2),method="ellipse")
 ```
@@ -95,7 +91,6 @@ Dans notre jeu de données, la valeur maximale est 1.85. Nous n'avons donc aucun
 
 ```{r}
 summary(freMPL5$BonusMalus)
-
 quantile(freMPL5$BonusMalus, seq(0,1,0.05))
 ```
 
@@ -106,7 +101,6 @@ hist(freMPL5$BonusMalus)
 boxplot(freMPL5$BonusMalus ~ freMPL5$ClaimInd)
 hist(freMPL5$BonusMalus[freMPL5$ClaimInd == 0])
 hist(freMPL5$BonusMalus[freMPL5$ClaimInd == 1])
-
 fact_BonusMalus <- cut(freMPL5$BonusMalus, c(50,seq(51,120,10),350), include.lowest = TRUE)
 tab <- table(fact_BonusMalus, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
@@ -135,9 +129,7 @@ summary(freMPL5$DrivAge)
 
 ```{r}
 cor.test(freMPL5$LicAge, freMPL5$DrivAge)
-
 cor.test(freMPL5$ClaimAmount, freMPL5$DrivAge)
-
 cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$DrivAge)
 ```
 
@@ -151,12 +143,9 @@ De plus, on a des corrélations avec ClaimAmount et Claim Ind.
 hist(freMPL5$DrivAge)
 hist(freMPL5$DrivAge[freMPL5$ClaimInd == 0])
 summary(freMPL5$DrivAge[freMPL5$ClaimInd == 0])
-
 hist(freMPL5$DrivAge[freMPL5$ClaimInd == 1])
 summary(freMPL5$DrivAge[freMPL5$ClaimInd == 1])
-
 boxplot(freMPL5$DrivAge ~ freMPL5$ClaimInd)
-
 ggplot(freMPL5, aes(x = DrivAge)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
@@ -177,7 +166,6 @@ L'âge du conducteur semble donc avoir un impact dans le risque d'avoir un sinis
 
 ```{r}
 plot(freMPL5$ClaimAmount ~ freMPL5$DrivAge)
-
 boxplot(freMPL5$ClaimAmount ~ freMPL5$DrivAge)
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$DrivAge[freMPL5$ClaimAmount>0], ylim=c(0,8000))
 ```
@@ -194,7 +182,6 @@ summary(freMPL5$LicAge)
 
 ```{r}
 cor.test(freMPL5$ClaimAmount, freMPL5$LicAge)
-
 cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$LicAge)
 ```
 
@@ -204,13 +191,9 @@ On conclut également à une corrélation avec les variables à expliquer.
 
 ```{r}
 hist(freMPL5$LicAge)
-
 summary(freMPL5$LicAge[freMPL5$ClaimInd == 0])
-
 summary(freMPL5$LicAge[freMPL5$ClaimInd == 1])
-
 boxplot(freMPL5$LicAge ~ freMPL5$ClaimInd)
-
 ggplot(freMPL5, aes(x = LicAge)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
@@ -256,24 +239,19 @@ sum(ifelse(freMPL5$ObtLic<18,1,0))
 Il n'y a que 11 valeurs incohérente, ce qui ne devrait pas beaucoup modifier l'analyse. Nous laisserons donc les données comme tel.
 
 ```{r}
-cor.test(freMPL5$ClaimAmount, freMPL5$DrivAge)
-
-cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$DrivAge)
+cor.test(freMPL5$ClaimAmount, freMPL5$ObtLic)
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$ObtLic)
 ```
 
-Il semble donc finalement y avoir une corrélation avec les variables à expliquer.
+Le test ne permet pas de rejeter l'hypothèse de non-corrélation. Nous ne pouvons pas réellement conclure.
 
 ##### Etude par rapport à la sinistralité
 
 ```{r}
 hist(freMPL5$ObtLic)
-
 summary(freMPL5$ObtLic[freMPL5$ClaimInd == 0])
-
 summary(freMPL5$ObtLic[freMPL5$ClaimInd == 1])
-
 boxplot(freMPL5$ObtLic ~ freMPL5$ClaimInd, , ylim=c(15,35))
-
 ggplot(freMPL5, aes(x = ObtLic)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
@@ -304,7 +282,6 @@ summary(freMPL5$Exposure)
 
 ```{r}
 cor.test(freMPL5$ClaimAmount, freMPL5$Exposure)
-
 cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$Exposure)
 ```
 
@@ -316,12 +293,9 @@ Il y a une claire corrélation et le facteur est très fort pour ClaimInd
 hist(freMPL5$Exposure)
 hist(freMPL5$Exposure[freMPL5$ClaimInd == 0])
 summary(freMPL5$Exposure[freMPL5$ClaimInd == 0])
-
 hist(freMPL5$Exposure[freMPL5$ClaimInd == 1])
 summary(freMPL5$Exposure[freMPL5$ClaimInd == 1])
-
 boxplot(freMPL5$Exposure ~ freMPL5$ClaimInd)
-
 ggplot(freMPL5, aes(x = Exposure)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
@@ -362,21 +336,95 @@ Cette catégorie devra être regroupée car elle contient trop de modalités de 
 
 ### Utilisation du véhicule
 
+```{r}
+summary(freMPL5$VehUsage)
+```
+
+La variable VehUsage de notre jeu de données a quatre modalités concernant l'utilisation des vehicules (Private+trip to office, Private, Professionanal, Professional run). L'usage le plus fréquent étant "Private+trip to office" et la modalité la moins utilisée est "Professional run"
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+table(freMPL5$VehUsage, freMPL5$ClaimInd)
+summary(freMPL5$VehUsage[freMPL5$ClaimInd == 0])
+summary(freMPL5$VehUsage[freMPL5$ClaimInd == 1])
+mosaicplot(table(freMPL5$ClaimInd,freMPL5$VehUsage))
+```
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$VehUsage)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$VehUsage[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
 ### Limite kilométrique
+
+```{r}
+summary(freMPL5$HasKmLimit)
+```
+
+##### Etude par rapport à la sinistralit
+
+```{r}
+table(freMPL5$HasKmLimit, freMPL5$ClaimInd)
+summary(freMPL5$HasKmLimit[freMPL5$ClaimInd == 0])
+summary(freMPL5$HasKmLimit[freMPL5$ClaimInd == 1])
+mosaicplot(table(freMPL5$ClaimInd,freMPL5$HasKmLimit))
+```
+
+Que ce soit avec ou sans limite de km sur le contrat, une faible partie des individus auront tendances à avoir un sinistre.
+
+##### Etude par rapport au coût
+
+```{r}
+boxplot(freMPL5$ClaimAmount ~ freMPL5$HasKmLimit)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$HasKmLimit[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+Lègère tendance à la hausse du prix à payer pour les individus ayant pris un contrat avec une limite de km
 
 ### Zone de risque
 
 Cette catégorie devra être regroupée (idem CSP)
 
+\<\<\<\<\<\<\< HEAD
+
+```{r}
+summary(freMPL5$RiskArea)
+```
+
+Très peu d'individu sont classés dans les zones de risques de niveau 1, 12 et 13.
+
+La grande majorité des individus sont dans la zone de niveau 7, puis dans les zones 10,6,19 et 11
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+table(freMPL5$RiskArea,freMPL5$ClaimInd)
+summary(freMPL5$RiskArea[freMPL5$ClaimInd == 0])
+summary(freMPL5$RiskArea[freMPL5$ClaimInd == 1])
+boxplot(freMPL5$RiskArea ~ freMPL5$ClaimInd)
+mosaicplot(table(freMPL5$ClaimInd,freMPL5$RiskArea))
+```
+
+A chaque zone de risque, il y a largement davantage d'individus n'ayant pas déclaré de garanti que d'individu ayant déclaré une garanti.
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$RiskArea)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$RiskArea[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+Les individus ayant tendances à payer plus cher les sinistres se situent dans les zones de risques de niveau les plus élévées.
+
 # Covariables liées aux sinitres possibles
 
 ```{r}
 cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimInd))
-
 cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimInd), method = "kendall")
-
 cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimAmount))
-
 cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimAmount), method = "kendall")
 ```
 
@@ -395,19 +443,15 @@ L'évènement d'avoir au moins un accident responsable est assez rare (environ 2
 
 ```{r}
 cor.test(freMPL5$ClaimNbResp, as.numeric(freMPL5$ClaimInd))
-
 hist(freMPL5$ClaimNbResp)
 boxplot(freMPL5$ClaimNbResp ~ freMPL5$ClaimInd)
 hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 0])
 hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 1])
-
 ggplot(freMPL5, aes(x = ClaimNbResp)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
-
-
 tab <- table(freMPL5$ClaimNbResp, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
@@ -419,9 +463,7 @@ Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il
 
 ```{r}
 cor.test(freMPL5$ClaimNbResp, freMPL5$ClaimAmount)
-
 plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbResp)
-
 boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
 ```
@@ -447,19 +489,15 @@ L'évènement d'avoir au moins un accident non responsable est assez rare (envir
 
 ```{r}
 cor.test(freMPL5$ClaimNbNonResp, as.numeric(freMPL5$ClaimInd))
-
 hist(freMPL5$ClaimNbNonResp)
 boxplot(freMPL5$ClaimNbNonResp ~ freMPL5$ClaimInd)
 hist(freMPL5$ClaimNbNonResp[freMPL5$ClaimInd == 0])
 hist(freMPL5$ClaimNbNonResp[freMPL5$ClaimInd == 1])
-
 ggplot(freMPL5, aes(x = ClaimNbNonResp)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
-
-
 tab <- table(freMPL5$ClaimNbNonResp, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
@@ -471,11 +509,8 @@ Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il
 
 ```{r}
 cor.test(freMPL5$ClaimNbNonResp, freMPL5$ClaimAmount)
-
 summary(as.factor(freMPL5$ClaimNbNonResp))
-
 plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbNonResp)
-
 boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbNonResp))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbNonResp[freMPL5$ClaimAmount>0]), ylim=c(0,30000))
 ```
@@ -501,19 +536,15 @@ L'évènement d'avoir au moins un accident en se garant est très rare (environ 
 
 ```{r}
 cor.test(freMPL5$ClaimNbParking, as.numeric(freMPL5$ClaimInd))
-
 hist(freMPL5$ClaimNbParking)
 boxplot(freMPL5$ClaimNbParking ~ freMPL5$ClaimInd)
 hist(freMPL5$ClaimNbParking[freMPL5$ClaimInd == 0])
 hist(freMPL5$ClaimNbParking[freMPL5$ClaimInd == 1])
-
 ggplot(freMPL5, aes(x = ClaimNbParking)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
-
-
 tab <- table(freMPL5$ClaimNbParking, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
@@ -525,9 +556,7 @@ Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il
 
 ```{r}
 cor.test(freMPL5$ClaimNbResp, freMPL5$ClaimAmount)
-
 plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbResp)
-
 boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
 ```
@@ -553,19 +582,15 @@ L'évènement d'avoir un vol ou incendie de la voiture est très rare (environ 5
 
 ```{r}
 cor.test(freMPL5$ClaimNbResp, as.numeric(freMPL5$ClaimInd))
-
 hist(freMPL5$ClaimNbResp)
 boxplot(freMPL5$ClaimNbResp ~ freMPL5$ClaimInd)
 hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 0])
 hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 1])
-
 ggplot(freMPL5, aes(x = ClaimNbResp)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
-
-
 tab <- table(freMPL5$ClaimNbResp, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
@@ -577,9 +602,7 @@ Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il
 
 ```{r}
 cor.test(freMPL5$ClaimNbResp, freMPL5$ClaimAmount)
-
 plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbResp)
-
 boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
 ```
@@ -605,19 +628,15 @@ L'évènement d'avoir au moins un bris de glace est relativement fréquent (envi
 
 ```{r}
 cor.test(freMPL5$ClaimNbWindscreen, as.numeric(freMPL5$ClaimInd))
-
 hist(freMPL5$ClaimNbWindscreen)
 boxplot(freMPL5$ClaimNbWindscreen ~ freMPL5$ClaimInd)
 hist(freMPL5$ClaimNbWindscreen[freMPL5$ClaimInd == 0], xlim=c(0,5))
 hist(freMPL5$ClaimNbWindscreen[freMPL5$ClaimInd == 1])
-
 ggplot(freMPL5, aes(x = ClaimNbWindscreen)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
-
-
 tab <- table(freMPL5$ClaimNbWindscreen, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
@@ -629,9 +648,7 @@ Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il
 
 ```{r}
 cor.test(freMPL5$ClaimNbWindscreen, freMPL5$ClaimAmount)
-
 plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbWindscreen)
-
 boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbWindscreen))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbWindscreen[freMPL5$ClaimAmount>0]), ylim=c(0,5000))
 ```
@@ -640,9 +657,7 @@ Ici, la p-value ne nous donne pas un seuil de confiance acceptable pour rejeter 
 
 ```{r}
 a = freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbWindscreen & freMPL5$ClaimNbWindscreen>0]/freMPL5$ClaimNbWindscreen[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbWindscreen & freMPL5$ClaimNbWindscreen>0]
-
 summary(a)
-
 hist(a)
 hist(a, breaks = seq(0,14000,5), xlim = c(0,600), ylim = c(0,50))
 ```
@@ -662,19 +677,15 @@ L'évènement d'avoir une panne est rare (environ 10%).
 
 ```{r}
 cor.test(freMPL5$OutUseNb, as.numeric(freMPL5$ClaimInd))
-
 hist(freMPL5$OutUseNb)
 boxplot(freMPL5$OutUseNb ~ freMPL5$ClaimInd)
 hist(freMPL5$OutUseNb[freMPL5$ClaimInd == 0])
 hist(freMPL5$OutUseNb[freMPL5$ClaimInd == 1])
-
 ggplot(freMPL5, aes(x = OutUseNb)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
-
-
 tab <- table(freMPL5$OutUseNb, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
@@ -686,9 +697,7 @@ Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il
 
 ```{r}
 cor.test(freMPL5$OutUseNb, freMPL5$ClaimAmount)
-
 plot(freMPL5$ClaimAmount ~ freMPL5$OutUseNb)
-
 boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$OutUseNb))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
 ```
@@ -752,4 +761,4 @@ De même, plus le score de malus est haut et plus l'assuré a de risque d'avoir 
 
 Avoir une limite de kilomètres semblent aussi réduire les risques.
 
-Nous avons déjà beaucoup analysé ces données dans les relations avec les autres variables précédemment.
+Nous avons déjà beaucoup analysé ces données dans les sections précédentes.

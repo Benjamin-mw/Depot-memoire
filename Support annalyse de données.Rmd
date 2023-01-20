@@ -40,11 +40,19 @@ library(plotROC)
 data(freMPL5)
 
 summary(freMPL5)
+
+#Cette nouvelle covariable sera présentée plus tard
+freMPL5$ObtLic <- ceiling(freMPL5$DrivAge - freMPL5$LicAge/12)
+
+x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19,20, 21)]
+corrplot(round(cor(x),2),method="ellipse")
 ```
 
 freMPL veut dire French Motor Personal Line datasets. On utilisera le dataset 5 qui contient environ 26000 contrats de l'annee 2004.
 
-On a ici un premier résumé des variables.
+On a ici un premier résumé des variables avec des premières corrélations.
+
+On voit des fortes corrélations en valeur absolue entre BonusMalus, DrivAge et LicAge. Cela peut facilement se comprendre car l'âge du conducteur et le temps écoulé depuis qu'il a obtenu son permis sont souvent fortement lié. On pourrait d'ailleurs éventuellement créer une variable pour connaitre l'âge du conducteur lorsqu'il a obtenu le permis.
 
 On remarque que certaines variables sont numériques au lieu d'être considérées comme des facteurs. Nous allons donc les changer :
 
@@ -60,9 +68,9 @@ freMPL5$ClaimNbWindscreen <- factor(freMPL5$ClaimNbWindscreen)
 freMPL5$OutUseNb <- factor(freMPL5$OutUseNb)
 ```
 
-#### Coefficient de bonus-malus
+### Coefficient de bonus-malus
 
-Pour le coefficient de bonus-malus, il commence à 1 et peut descendre jusqu'à 0.5 si le conducteur n'a pas d'accidents responsables ou semi-responsables. A l'inverse, en cas d'accidents responsables, le coefficient augmente et peut atteindre jusqu'à 3.5. Dans le jeu de données, toutes les valeurs sont multipliées par 100 ce qui ne posera aucun problème dans le cas de nos modèles. Cependant, si on veut voir l'impact linéaire du coefficient de bonus-malus, il pourrait être intéressant de revoir son échelle en retranchant 100 par exemple à la variable.
+Pour le coefficient de bonus-malus, il commence à 1 et peut descendre jusqu'à 0.5 si le conducteur n'a pas d'accidents responsables ou semi-responsables. A l'inverse, en cas d'accidents responsables, le coefficient augmente et peut atteindre jusqu'à 3.5. Dans le jeu de données, toutes les valeurs sont multipliées par 100 ce qui ne posera aucun problème dans le cas de nos modèles. Cependant, si on veut voir l'impact linéaire du coefficient de bonus-malus, il pourrait être intéressant de revoir son échelle en retranchant 100 par exemple à la variable. C'est pour cela qu'il y a une corrélation assez importante entre BonusMalus et ClaimNbResp.
 
 Dans notre jeu de données, la valeur maximale est 1.85. Nous n'avons donc aucune information sur des éventuels assurés possédant un malus supérieur. Cela pourra donc être compliqué de prédire les primes d'assurances pour ce genre d'assurés. De manière générale, ici on a princialement des bons conducteurs puisque la médianne vaut 0.5 et le 3eme quartile 0.6 et 95% des assurés sont en dessous de 0.90.
 
@@ -71,6 +79,186 @@ summary(freMPL5$BonusMalus)
 
 quantile(freMPL5$BonusMalus, seq(0,1,0.05))
 ```
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$BonusMalus)
+boxplot(freMPL5$BonusMalus ~ freMPL5$ClaimInd)
+hist(freMPL5$BonusMalus[freMPL5$ClaimInd == 0])
+hist(freMPL5$BonusMalus[freMPL5$ClaimInd == 1])
+```
+
+C'est surtout le boxplot qui permet de conclure à un lien car ceux qui ont à réclamer de l'argent ont en moyenne un Bonus plus faible que les autres.
+
+##### Etude par rapport au coût
+
+```{r}
+fact_BonusMalus <- cut(freMPL5$BonusMalus, c(50,seq(51,120,10),350), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount ~ fact_BonusMalus, ylim=c(0,6000))
+fact_BonusMalus_sinistre <- cut(freMPL5$BonusMalus[freMPL5$ClaimInd == 1], c(seq(50,59,1),seq(60,120,10),350), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1] ~ fact_BonusMalus_sinistre, ylim=c(0,15000))
+```
+
+Le premier graphique n'étant pas interprétable, nous avons créé le deuxieme qui semble nous donner une certaine tendance : plus le coefficient de malus est élevé et plus le coût moyen augmente.
+
+### Etude de la variable d'âge (DrivAge)
+
+```{r}
+summary(freMPL5$DrivAge)
+```
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$DrivAge)
+hist(freMPL5$DrivAge[freMPL5$ClaimInd == 0])
+summary(freMPL5$DrivAge[freMPL5$ClaimInd == 0])
+
+hist(freMPL5$DrivAge[freMPL5$ClaimInd == 1])
+summary(freMPL5$DrivAge[freMPL5$ClaimInd == 1])
+
+boxplot(freMPL5$DrivAge ~ freMPL5$ClaimInd)
+
+ggplot(freMPL5, aes(x = DrivAge)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+```
+
+L'âge du conducteur semble donc avoir un impact dans le risque d'avoir un sinistre (plus on est jeune, et plus on risque de coûter de l'argent à l'assurance). En effet, la proportion de 35-50 ans est très forte mais il n'y a pas beaucoup de sinistres pour autant comparé aux 20-30 ans.
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$DrivAge)
+freMPL5$DrivAge <- cut(freMPL5$DrivAge, quantile(freMPL5$DrivAge, probs = seq(0,1,1/6)), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount ~ freMPL5$DrivAge)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$DrivAge[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+On observe donc un risque accru pour les jeunes conducteurs mais on remarque aussi que le risque augmente de nouveau après 50 ans (cela pourrait correspondre au moment où les enfants sont en âge de conduire sur le véhicule des parents).
+
+### Etude de la variable d'ancienneté du permis (LicAge)
+
+Cette variable est exprimée en mois. Nous rappelons qu'elle est très corrélée avec DrivAge et Bonus-Malus.
+
+```{r}
+summary(freMPL5$LicAge)
+```
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$LicAge)
+
+summary(freMPL5$LicAge[freMPL5$ClaimInd == 0])
+
+summary(freMPL5$LicAge[freMPL5$ClaimInd == 1])
+
+boxplot(freMPL5$LicAge ~ freMPL5$ClaimInd)
+
+ggplot(freMPL5, aes(x = LicAge)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+```
+
+On retrouve à peu près les mêmes résultats ici que pour DrivAge. L'interprétation est la même.
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$LicAge)
+freMPL5$LicAge <- cut(freMPL5$LicAge, quantile(freMPL5$LicAge, probs = seq(0,1,1/6)), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount ~ freMPL5$LicAge)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$LicAge[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+Idem que pour l'âge.
+
+### Création d'une variable (ObtLic)
+
+```{r}
+#Rappel de la formule :
+#freMPL5$ObtLic <- freMPL5$DrivAge - freMPL5$LicAge/12
+summary(freMPL5$ObtLic)
+```
+
+On a des dates d'obtention de permis de 16 ans ? Ceci est étrange... Il faudra regarder dans les données :
+
+```{r}
+sum(ifelse(freMPL5$ObtLic<18,1,0))
+```
+
+Il n'y a que 13 valeurs incohérente, ce qui ne devrait pas beaucoup modifier l'analyse. Nous laisserons donc les données comme tel.
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$ObtLic)
+
+summary(freMPL5$ObtLic[freMPL5$ClaimInd == 0])
+
+summary(freMPL5$ObtLic[freMPL5$ClaimInd == 1])
+
+boxplot(freMPL5$ObtLic ~ freMPL5$ClaimInd)
+
+ggplot(freMPL5, aes(x = ObtLic)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+```
+
+Il ne semble pas y avoir ici d'impact particulier.
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$ObtLic)
+freMPL5$ObtLic <- cut(freMPL5$ObtLic, quantile(freMPL5$ObtLic, probs = seq(0,1,1/6)), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount ~ freMPL5$ObtLic)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$ObtLic[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+Il n'y a pas de claire tendance une nouvelle fois. Cette variable ne sera sûrement pas utile par la suite.
+
+### Exposition
+
+### Date de début
+
+### Date de fin
+
+### Genre
+
+### Statut marital
+
+### CSP
+
+Cette catégorie devra être regroupée car elle contient trop de modalités de facteur.
+
+### Utilisation du véhicule
+
+### Limite kilométrique
+
+### Zone de risque
+
+Cette catégorie devra être regroupée (idem CSP)
+
+### Accident responsable
+
+### Accident non-responsable
+
+### Parking
+
+### Incendie ou vol
+
+### Bris de glace
+
+### Panne
 
 ### Etude de la variables coût
 

@@ -133,6 +133,18 @@ Le premier graphique n'étant pas interprétable, nous avons créé le deuxieme 
 summary(freMPL5$DrivAge)
 ```
 
+```{r}
+cor.test(freMPL5$LicAge, freMPL5$DrivAge)
+
+cor.test(freMPL5$ClaimAmount, freMPL5$DrivAge)
+
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$DrivAge)
+```
+
+On voit que les variables LicAge et DrivAge sont fortement corrélées par le test de Pearson.
+
+De plus, on a des corrélations avec ClaimAmount et Claim Ind.
+
 ##### Etude par rapport à la sinistralité
 
 ```{r}
@@ -179,6 +191,14 @@ Cette variable est exprimée en mois. Nous rappelons qu'elle est très corrélé
 ```{r}
 summary(freMPL5$LicAge)
 ```
+
+```{r}
+cor.test(freMPL5$ClaimAmount, freMPL5$LicAge)
+
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$LicAge)
+```
+
+On conclut également à une corrélation avec les variables à expliquer.
 
 ##### Etude par rapport à la sinistralité
 
@@ -235,6 +255,14 @@ sum(ifelse(freMPL5$ObtLic<18,1,0))
 
 Il n'y a que 11 valeurs incohérente, ce qui ne devrait pas beaucoup modifier l'analyse. Nous laisserons donc les données comme tel.
 
+```{r}
+cor.test(freMPL5$ClaimAmount, freMPL5$DrivAge)
+
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$DrivAge)
+```
+
+Il semble donc finalement y avoir une corrélation avec les variables à expliquer.
+
 ##### Etude par rapport à la sinistralité
 
 ```{r}
@@ -253,7 +281,7 @@ ggplot(freMPL5, aes(x = ObtLic)) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
 ```
 
-Il peut y avoir un éventuel impact sur les quartiles. Sinon, la médiane reste la même.
+Il peut y avoir un éventuel impact sur les quartiles. Sinon, la médiane reste sensiblement la même.
 
 ##### Etude par rapport au coût
 
@@ -264,7 +292,7 @@ boxplot(freMPL5$ClaimAmount ~ freMPL5$ObtLic)
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$ObtLic[freMPL5$ClaimAmount>0], ylim=c(0,6000))
 ```
 
-Il n'y a pas de claire tendance une nouvelle fois. Cette variable ne sera sûrement pas utile par la suite.
+Il n'y a pas de claire tendance mais cette covariable pourrait permettre d'affiner le modèle.
 
 # Covariables liées au temps et à l'exposition
 
@@ -273,6 +301,14 @@ Il n'y a pas de claire tendance une nouvelle fois. Cette variable ne sera sûrem
 ```{r}
 summary(freMPL5$Exposure)
 ```
+
+```{r}
+cor.test(freMPL5$ClaimAmount, freMPL5$Exposure)
+
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$Exposure)
+```
+
+Il y a une claire corrélation et le facteur est très fort pour ClaimInd
 
 ##### Etude par rapport à la sinistralité
 
@@ -665,7 +701,7 @@ summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$C
 
 Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. On arrive à des données à peu près semblables que pour les deux premières covariables de sinistres.
 
-### Etude de la variables coût
+# Etude de la variable coût
 
 ##### ...en fonction de la sinistralité
 
@@ -675,45 +711,35 @@ plot(freMPL5$ClaimAmount ~ freMPL5$ClaimInd)
 
 ```{r echo=TRUE}
 summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1]) #resumé lorsque de l'argent est demandé
-summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 0])
+summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 0]) #evidemment toujours nul
 ```
-
-On remarque donc l'apparition de quelques données étranges. En effet, on a l'apparition de variables de coût négatives. Ceci est du à une régularisation. ne pouvant pas traiter cela, nous supprimerons les lignes correspondantes qui sont au nombre de 278.
-
-```{r}
-sum(ifelse(freMPL5$ClaimAmount[freMPL5$ClaimInd == 0]<0,1,0)) #=278
-```
-
-Nous supprimons alors les lignes en questions :
-
-```{r}
-freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
-```
-
-Nous avons autrement une distribution des coût qui est relativement proche de 0 avec tout de même l'apparition de quelques sinistres graves qui faussent la moyenne :
-
-```{r}
-hist(freMPL5$ClaimAmount) #écrasé par 0 car il y a énormément de petits sinistres
-hist(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1]) #de nouveau écrasé dans les petites valeurs
-```
-
-Pour mieux voir la potentielle distribution, nous allons essayer de zoomer vers les petites valeurs :
 
 ```{r}
 hist(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1], breaks=seq(0,100000,10),xlim=c(0,4000))
 ```
 
-On a ici un graphique plus intéressant qui nous permettra de proposer éventuellement une loi pour la variable de coût. On remarque tout de fois quelques énormes pics de fréquence. Nous pouvons imaginer qu'il s'agit d'une dépense forfaitaire (comme par exemple un bris de glace qui s'en rapproche à cause de Carglass en France).
+On a ici un graphique plus intéressant qui nous permettra de proposer éventuellement une loi pour la variable de coût. On remarque tout de fois quelques énormes pics de fréquence. Nous pouvons imaginer qu'il s'agit d'une dépense forfaitaire (comme par exemple un bris de glace qui a souvent le même prix).
 
 On remarque un premier pic entre 90 et 110 et un autre 1410 et 1420. Regardons à quoi cela pourrait être dû :
 
 ```{r}
 summary(freMPL5[freMPL5$ClaimAmount<110 & freMPL5$ClaimAmount>90,])
+quantile(freMPL5$ClaimNbWindscreen[freMPL5$ClaimAmount<110 & freMPL5$ClaimAmount>90], seq(0,1,0.1))
 ```
 
-On remarque que cette tranche représente 8,7% des assurés qui ont eu recours à un remboursement.
+On remarque que cette tranche représente 8,7% des assurés qui ont eu recours à un remboursement et une grande partie (au moins 40%) de ces assurés ont eu au moins un bris de glace.
 
-### Etude de la variable d'indication de remboursement
+Pour le pic à 1410-1420 :
+
+```{r}
+summary(freMPL5[freMPL5$ClaimAmount<1419 & freMPL5$ClaimAmount>1409,])
+quantile(freMPL5$ClaimNbNonResp[freMPL5$ClaimAmount<1419 & freMPL5$ClaimAmount>1409], seq(0,1,0.1))
+quantile(freMPL5$ClaimNbResp[freMPL5$ClaimAmount<1419 & freMPL5$ClaimAmount>1409], seq(0,1,0.1))
+```
+
+On a ici au moins 30% d'accidents responsables et 20% d'accidents non responsables.
+
+# Etude de la variable d'indication de remboursement
 
 ```{r}
 summary(freMPL5[freMPL5$ClaimInd == 0,])
@@ -726,4 +752,4 @@ De même, plus le score de malus est haut et plus l'assuré a de risque d'avoir 
 
 Avoir une limite de kilomètres semblent aussi réduire les risques.
 
-Pour les catégories sociaux-professionnelles, il faudra faire une étude plus poussée avant de conclure.
+Nous avons déjà beaucoup analysé ces données dans les sections précédentes.

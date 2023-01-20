@@ -256,12 +256,12 @@ sum(ifelse(freMPL5$ObtLic<18,1,0))
 Il n'y a que 11 valeurs incohérente, ce qui ne devrait pas beaucoup modifier l'analyse. Nous laisserons donc les données comme tel.
 
 ```{r}
-cor.test(freMPL5$ClaimAmount, freMPL5$DrivAge)
+cor.test(freMPL5$ClaimAmount, freMPL5$ObtLic)
 
-cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$DrivAge)
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$ObtLic)
 ```
 
-Il semble donc finalement y avoir une corrélation avec les variables à expliquer.
+Le test ne permet pas de rejeter l'hypothèse de non-corrélation. Nous ne pouvons pas réellement conclure.
 
 ##### Etude par rapport à la sinistralité
 

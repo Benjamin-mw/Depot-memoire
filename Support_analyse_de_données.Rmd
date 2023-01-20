@@ -1,0 +1,766 @@
+---
+title: "Analyse des données"
+output:
+  html_document: default
+  pdf_document: default
+date: "2023-01-19"
+---
+
+## Import de packages utiles
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(CASdatasets)
+library(tidyverse)
+library(MASS)
+library(knitr)
+library(ggplot2)
+library(cowplot)
+library(reshape2)
+library(dplyr)
+library(GGally)
+library(corrplot)
+library(carData) 
+library(car)
+library(questionr)
+library(multcomp)
+library(dplyr)
+library(leaps)
+library(TeachingDemos)
+library(FactoMineR)
+library(factoextra)
+library(ROCR)
+library(plotROC)
+```
+
+## Documentation et import du dataset
+
+```{r}
+?CASdatasets #ouvre l'aide pour comprendre le dataset
+data(freMPL5)
+summary(freMPL5)
+#Cette nouvelle covariable sera présentée plus tard
+freMPL5$ObtLic <- ceiling(freMPL5$DrivAge - freMPL5$LicAge/12)
+x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19,20,21)]
+corrplot(round(cor(x),2),method="ellipse")
+```
+
+freMPL veut dire French Motor Personal Line datasets. On utilisera le dataset 5 qui contient environ 26000 contrats de l'annee 2004.
+
+On a ici un premier résumé des variables avec des premières corrélations uniquement pour les variables continues.
+
+On voit des fortes corrélations en valeur absolue entre BonusMalus, DrivAge et LicAge. Cela peut facilement se comprendre car l'âge du conducteur et le temps écoulé depuis qu'il a obtenu son permis sont souvent fortement lié. On pourrait d'ailleurs éventuellement créer une variable pour connaitre l'âge du conducteur lorsqu'il a obtenu le permis.
+
+On remarque que certaines variables sont numériques au lieu d'être considérées comme des facteurs. Nous allons donc les changer :
+
+```{r}
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+#freMPL5$ClaimNbResp <- factor(freMPL5$ClaimNbResp)
+#freMPL5$ClaimNbNonResp <- factor(freMPL5$ClaimNbNonResp)
+#freMPL5$ClaimNbParking <- factor(freMPL5$ClaimNbParking)
+#freMPL5$ClaimNbFireTheft <- factor(freMPL5$ClaimNbFireTheft)
+#freMPL5$ClaimNbWindscreen <- factor(freMPL5$ClaimNbWindscreen)
+#freMPL5$OutUseNb <- factor(freMPL5$OutUseNb)
+```
+
+### Remarque sur les données
+
+```{r echo=TRUE}
+summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1]) #resumé lorsque de l'argent est demandé
+summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 0])
+```
+
+On remarque donc l'apparition de quelques données étranges. En effet, on a l'apparition de variables de coût négatives. Ceci est du à une régularisation. ne pouvant pas traiter cela, nous supprimerons les lignes correspondantes qui sont au nombre de 278.
+
+```{r}
+sum(ifelse(freMPL5$ClaimAmount[freMPL5$ClaimInd == 0]<0,1,0)) #=278
+```
+
+Nous supprimons alors les lignes en questions :
+
+```{r}
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+```
+
+### Coefficient de bonus-malus
+
+Pour le coefficient de bonus-malus, il commence à 1 et peut descendre jusqu'à 0.5 si le conducteur n'a pas d'accidents responsables ou semi-responsables. A l'inverse, en cas d'accidents responsables, le coefficient augmente et peut atteindre jusqu'à 3.5. Dans le jeu de données, toutes les valeurs sont multipliées par 100 ce qui ne posera aucun problème dans le cas de nos modèles. Cependant, si on veut voir l'impact linéaire du coefficient de bonus-malus, il pourrait être intéressant de revoir son échelle en retranchant 100 par exemple à la variable. C'est pour cela qu'il y a une corrélation assez importante entre BonusMalus et ClaimNbResp.
+
+Dans notre jeu de données, la valeur maximale est 1.85. Nous n'avons donc aucune information sur des éventuels assurés possédant un malus supérieur. Cela pourra donc être compliqué de prédire les primes d'assurances pour ce genre d'assurés. De manière générale, ici on a princialement des bons conducteurs puisque la médianne vaut 0.5 et le 3eme quartile 0.6 et 95% des assurés sont en dessous de 0.90.
+
+```{r}
+summary(freMPL5$BonusMalus)
+quantile(freMPL5$BonusMalus, seq(0,1,0.05))
+```
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$BonusMalus)
+boxplot(freMPL5$BonusMalus ~ freMPL5$ClaimInd)
+hist(freMPL5$BonusMalus[freMPL5$ClaimInd == 0])
+hist(freMPL5$BonusMalus[freMPL5$ClaimInd == 1])
+fact_BonusMalus <- cut(freMPL5$BonusMalus, c(50,seq(51,120,10),350), include.lowest = TRUE)
+tab <- table(fact_BonusMalus, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+C'est surtout le boxplot qui permet de conclure à un lien car ceux qui ont à réclamer de l'argent ont en moyenne un Bonus plus faible que les autres.
+
+##### Etude par rapport au coût
+
+```{r}
+boxplot(freMPL5$ClaimAmount ~ fact_BonusMalus, ylim=c(0,6000))
+fact_BonusMalus_sinistre <- cut(freMPL5$BonusMalus[freMPL5$ClaimInd == 1], c(seq(50,59,1),seq(60,120,10),350), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1] ~ fact_BonusMalus_sinistre, ylim=c(0,15000))
+```
+
+Le premier graphique n'étant pas interprétable, nous avons créé le deuxieme qui semble nous donner une certaine tendance : plus le coefficient de malus est élevé et plus le coût moyen augmente.
+
+# Covariables liées à l'âge
+
+### Etude de la variable d'âge (DrivAge)
+
+```{r}
+summary(freMPL5$DrivAge)
+```
+
+```{r}
+cor.test(freMPL5$LicAge, freMPL5$DrivAge)
+cor.test(freMPL5$ClaimAmount, freMPL5$DrivAge)
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$DrivAge)
+```
+
+On voit que les variables LicAge et DrivAge sont fortement corrélées par le test de Pearson.
+
+De plus, on a des corrélations avec ClaimAmount et Claim Ind.
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$DrivAge)
+hist(freMPL5$DrivAge[freMPL5$ClaimInd == 0])
+summary(freMPL5$DrivAge[freMPL5$ClaimInd == 0])
+hist(freMPL5$DrivAge[freMPL5$ClaimInd == 1])
+summary(freMPL5$DrivAge[freMPL5$ClaimInd == 1])
+boxplot(freMPL5$DrivAge ~ freMPL5$ClaimInd)
+ggplot(freMPL5, aes(x = DrivAge)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+```
+
+```{r}
+freMPL5$DrivAge <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+tab <- table(freMPL5$DrivAge, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+L'âge du conducteur semble donc avoir un impact dans le risque d'avoir un sinistre (plus on est jeune, et plus on risque de coûter de l'argent à l'assurance). En effet, la proportion de 35-50 ans est très forte mais il n'y a pas beaucoup de sinistres comparé aux 20-30 ans.
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$DrivAge)
+boxplot(freMPL5$ClaimAmount ~ freMPL5$DrivAge)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$DrivAge[freMPL5$ClaimAmount>0], ylim=c(0,8000))
+```
+
+On observe donc un risque accru pour les jeunes conducteurs mais on remarque aussi que le risque augmente de nouveau après 50 ans (cela pourrait correspondre au moment où les enfants sont en âge de conduire sur le véhicule des parents).
+
+### Etude de la variable d'ancienneté du permis (LicAge)
+
+Cette variable est exprimée en mois. Nous rappelons qu'elle est très corrélée avec DrivAge et Bonus-Malus.
+
+```{r}
+summary(freMPL5$LicAge)
+```
+
+```{r}
+cor.test(freMPL5$ClaimAmount, freMPL5$LicAge)
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$LicAge)
+```
+
+On conclut également à une corrélation avec les variables à expliquer.
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$LicAge)
+summary(freMPL5$LicAge[freMPL5$ClaimInd == 0])
+summary(freMPL5$LicAge[freMPL5$ClaimInd == 1])
+boxplot(freMPL5$LicAge ~ freMPL5$ClaimInd)
+ggplot(freMPL5, aes(x = LicAge)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+```
+
+```{r}
+freMPL5$LicAge <- cut(freMPL5$LicAge, c(0,50,100,200,300,400,500,1000), include.lowest = TRUE)
+tab <- table(freMPL5$LicAge, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+On retrouve à peu près les mêmes résultats ici que pour DrivAge. L'interprétation est la même.
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$LicAge)
+#freMPL5$LicAge <- cut(freMPL5$LicAge, quantile(freMPL5$LicAge, probs = seq(0,1,1/6)), include.lowest = TRUE)
+#variable déjà transformée en facteur plus haut
+boxplot(freMPL5$ClaimAmount ~ freMPL5$LicAge)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$LicAge[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+Idem que pour l'âge.
+
+### Création d'une variable (ObtLic)
+
+```{r}
+#Rappel de la formule :
+#freMPL5$ObtLic <- freMPL5$DrivAge - freMPL5$LicAge/12
+summary(freMPL5$ObtLic)
+```
+
+On a des dates d'obtention de permis de 16 ans ? Ceci est étrange... Il faudra regarder dans les données :
+
+```{r}
+sum(ifelse(freMPL5$ObtLic<18,1,0))
+```
+
+Il n'y a que 11 valeurs incohérente, ce qui ne devrait pas beaucoup modifier l'analyse. Nous laisserons donc les données comme tel.
+
+```{r}
+cor.test(freMPL5$ClaimAmount, freMPL5$ObtLic)
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$ObtLic)
+```
+
+Le test ne permet pas de rejeter l'hypothèse de non-corrélation. Nous ne pouvons pas réellement conclure.
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$ObtLic)
+summary(freMPL5$ObtLic[freMPL5$ClaimInd == 0])
+summary(freMPL5$ObtLic[freMPL5$ClaimInd == 1])
+boxplot(freMPL5$ObtLic ~ freMPL5$ClaimInd, , ylim=c(15,35))
+ggplot(freMPL5, aes(x = ObtLic)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+```
+
+Il peut y avoir un éventuel impact sur les quartiles. Sinon, la médiane reste sensiblement la même.
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$ObtLic)
+freMPL5$ObtLic <- cut(freMPL5$ObtLic, quantile(freMPL5$ObtLic, probs = seq(0,1,1/6)), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount ~ freMPL5$ObtLic)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$ObtLic[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+Il n'y a pas de claire tendance mais cette covariable pourrait permettre d'affiner le modèle.
+
+# Covariables liées au temps et à l'exposition
+
+### Exposition
+
+```{r}
+summary(freMPL5$Exposure)
+```
+
+```{r}
+cor.test(freMPL5$ClaimAmount, freMPL5$Exposure)
+cor.test(as.numeric(freMPL5$ClaimInd), freMPL5$Exposure)
+```
+
+Il y a une claire corrélation et le facteur est très fort pour ClaimInd
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+hist(freMPL5$Exposure)
+hist(freMPL5$Exposure[freMPL5$ClaimInd == 0])
+summary(freMPL5$Exposure[freMPL5$ClaimInd == 0])
+hist(freMPL5$Exposure[freMPL5$ClaimInd == 1])
+summary(freMPL5$Exposure[freMPL5$ClaimInd == 1])
+boxplot(freMPL5$Exposure ~ freMPL5$ClaimInd)
+ggplot(freMPL5, aes(x = Exposure)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+```
+
+Les résultats semblent très intuitifs puisque plus on prend un intervalle de temps grand et plus l'assuré a de risque d'avoir un accident.
+
+##### Etude par rapport au coût
+
+```{r}
+fact_Exposure <- cut(freMPL5$Exposure, quantile(freMPL5$Exposure, probs = seq(0,1,1/6)), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount ~ fact_Exposure, ylim=c(0,6000))
+fact_Exposure_sinistre <- cut(freMPL5$Exposure[freMPL5$ClaimInd == 1], quantile(freMPL5$Exposure[freMPL5$ClaimInd == 1], probs = seq(0,1,1/6)), include.lowest = TRUE)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1] ~ fact_Exposure_sinistre, ylim=c(0,15000))
+```
+
+Sachant qu'on a eu un sinistre, on a alors que l'exposition n'est pas réellement impactant sur le coût des sinistres.
+
+Nous étudierons cela plus en profondeur dans l'étude d'une éventuelle indépendance fréquence - coût moyen.
+
+### Date de début
+
+### Date de fin
+
+# Covariables liées à l'état civil
+
+### Genre
+
+### Statut marital
+
+### CSP
+
+Cette catégorie devra être regroupée car elle contient trop de modalités de facteur.
+
+# Covariables liées au véhicule ou à l'emplacement
+
+### Utilisation du véhicule
+
+```{r}
+summary(freMPL5$VehUsage)
+```
+
+La variable VehUsage de notre jeu de données a quatre modalités concernant l'utilisation des vehicules (Private+trip to office, Private, Professionanal, Professional run). L'usage le plus fréquent étant "Private+trip to office" et la modalité la moins utilisée est "Professional run"
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+table(freMPL5$VehUsage, freMPL5$ClaimInd)
+summary(freMPL5$VehUsage[freMPL5$ClaimInd == 0])
+summary(freMPL5$VehUsage[freMPL5$ClaimInd == 1])
+mosaicplot(table(freMPL5$ClaimInd,freMPL5$VehUsage))
+```
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$VehUsage)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$VehUsage[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+### Limite kilométrique
+
+```{r}
+summary(freMPL5$HasKmLimit)
+```
+
+##### Etude par rapport à la sinistralit
+
+```{r}
+table(freMPL5$HasKmLimit, freMPL5$ClaimInd)
+summary(freMPL5$HasKmLimit[freMPL5$ClaimInd == 0])
+summary(freMPL5$HasKmLimit[freMPL5$ClaimInd == 1])
+mosaicplot(table(freMPL5$ClaimInd,freMPL5$HasKmLimit))
+```
+
+Que ce soit avec ou sans limite de km sur le contrat, une faible partie des individus auront tendances à avoir un sinistre.
+
+##### Etude par rapport au coût
+
+```{r}
+boxplot(freMPL5$ClaimAmount ~ freMPL5$HasKmLimit)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$HasKmLimit[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+Lègère tendance à la hausse du prix à payer pour les individus ayant pris un contrat avec une limite de km
+
+### Zone de risque
+
+Cette catégorie devra être regroupée (idem CSP)
+
+\<\<\<\<\<\<\< HEAD
+
+```{r}
+summary(freMPL5$RiskArea)
+```
+
+Très peu d'individu sont classés dans les zones de risques de niveau 1, 12 et 13.
+
+La grande majorité des individus sont dans la zone de niveau 7, puis dans les zones 10,6,19 et 11
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+table(freMPL5$RiskArea,freMPL5$ClaimInd)
+summary(freMPL5$RiskArea[freMPL5$ClaimInd == 0])
+summary(freMPL5$RiskArea[freMPL5$ClaimInd == 1])
+boxplot(freMPL5$RiskArea ~ freMPL5$ClaimInd)
+mosaicplot(table(freMPL5$ClaimInd,freMPL5$RiskArea))
+```
+
+A chaque zone de risque, il y a largement davantage d'individus n'ayant pas déclaré de garanti que d'individu ayant déclaré une garanti.
+
+##### Etude par rapport au coût
+
+```{r}
+plot(freMPL5$ClaimAmount ~ freMPL5$RiskArea)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$RiskArea[freMPL5$ClaimAmount>0], ylim=c(0,6000))
+```
+
+Les individus ayant tendances à payer plus cher les sinistres se situent dans les zones de risques de niveau les plus élévées.
+
+# Covariables liées aux sinitres possibles
+
+```{r}
+cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimInd))
+cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimInd), method = "kendall")
+cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimAmount))
+cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimAmount), method = "kendall")
+```
+
+En utilisant le test de Pearson et le test de Kendall, on obtient que la somme des sinitres possibles est corrélée avec l'indicateur ClaimInd mais aussi avec la variable ClaimAmount. Nous allons donc les étudier indépendament pour trouver l'impact de ces covariables sur les variables à expliquer.
+
+### Accident responsable
+
+```{r}
+summary(freMPL5$ClaimNbResp)
+quantile(freMPL5$ClaimNbResp, seq(0,1,1/10))
+```
+
+L'évènement d'avoir au moins un accident responsable est assez rare (environ 20%).
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+cor.test(freMPL5$ClaimNbResp, as.numeric(freMPL5$ClaimInd))
+hist(freMPL5$ClaimNbResp)
+boxplot(freMPL5$ClaimNbResp ~ freMPL5$ClaimInd)
+hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 0])
+hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 1])
+ggplot(freMPL5, aes(x = ClaimNbResp)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+tab <- table(freMPL5$ClaimNbResp, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lorsque les accidents sont responsables.
+
+##### Etude par rapport au coût
+
+```{r}
+cor.test(freMPL5$ClaimNbResp, freMPL5$ClaimAmount)
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbResp)
+boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
+```
+
+La corrélation est surtout observable entre cette variable et la variable de coût moyen. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
+
+```{r}
+summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbResp & freMPL5$ClaimNbResp>0]/freMPL5$ClaimNbResp[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbResp & freMPL5$ClaimNbResp>0])
+```
+
+Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. Pour estimer un peu plus finement en même temps que les coût moyen des autres covariables de sinistres possibles, il faudrait faire un glm par exemple.
+
+### Accident non-responsable
+
+```{r}
+summary(freMPL5$ClaimNbNonResp)
+quantile(freMPL5$ClaimNbNonResp, seq(0,1,1/10))
+```
+
+L'évènement d'avoir au moins un accident non responsable est assez rare (environ 20%).
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+cor.test(freMPL5$ClaimNbNonResp, as.numeric(freMPL5$ClaimInd))
+hist(freMPL5$ClaimNbNonResp)
+boxplot(freMPL5$ClaimNbNonResp ~ freMPL5$ClaimInd)
+hist(freMPL5$ClaimNbNonResp[freMPL5$ClaimInd == 0])
+hist(freMPL5$ClaimNbNonResp[freMPL5$ClaimInd == 1])
+ggplot(freMPL5, aes(x = ClaimNbNonResp)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+tab <- table(freMPL5$ClaimNbNonResp, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lorsqu'il y a des accidents non responsables.
+
+##### Etude par rapport au coût
+
+```{r}
+cor.test(freMPL5$ClaimNbNonResp, freMPL5$ClaimAmount)
+summary(as.factor(freMPL5$ClaimNbNonResp))
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbNonResp)
+boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbNonResp))
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbNonResp[freMPL5$ClaimAmount>0]), ylim=c(0,30000))
+```
+
+La corrélation est légerement observable entre cette variable et le coût moyen. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
+
+```{r}
+summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbNonResp & freMPL5$ClaimNbNonResp>0]/freMPL5$ClaimNbNonResp[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbNonResp & freMPL5$ClaimNbNonResp>0])
+```
+
+Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. On obtient par ailleurs des valeurs très proches du cas des accidents responsables.
+
+### Parking
+
+```{r}
+summary(freMPL5$ClaimNbParking)
+quantile(freMPL5$ClaimNbParking, seq(0,1,1/20))
+```
+
+L'évènement d'avoir au moins un accident en se garant est très rare (environ 5%).
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+cor.test(freMPL5$ClaimNbParking, as.numeric(freMPL5$ClaimInd))
+hist(freMPL5$ClaimNbParking)
+boxplot(freMPL5$ClaimNbParking ~ freMPL5$ClaimInd)
+hist(freMPL5$ClaimNbParking[freMPL5$ClaimInd == 0])
+hist(freMPL5$ClaimNbParking[freMPL5$ClaimInd == 1])
+ggplot(freMPL5, aes(x = ClaimNbParking)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+tab <- table(freMPL5$ClaimNbParking, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lors d'accidents en stationnement.
+
+##### Etude par rapport au coût
+
+```{r}
+cor.test(freMPL5$ClaimNbResp, freMPL5$ClaimAmount)
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbResp)
+boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
+```
+
+La corrélation est surtout observable entre cette variable et la variable de coût moyen. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
+
+```{r}
+summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbParking & freMPL5$ClaimNbParking>0]/freMPL5$ClaimNbParking[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbParking & freMPL5$ClaimNbParking>0])
+```
+
+Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. Pour estimer un peu plus finement en même temps que les coût moyen des autres covariables de sinistres possibles, il faudrait faire un glm par exemple.
+
+### Incendie ou vol
+
+```{r}
+summary(freMPL5$ClaimNbFireTheft)
+quantile(freMPL5$ClaimNbFireTheft, seq(0,1,1/20))
+```
+
+L'évènement d'avoir un vol ou incendie de la voiture est très rare (environ 5%).
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+cor.test(freMPL5$ClaimNbResp, as.numeric(freMPL5$ClaimInd))
+hist(freMPL5$ClaimNbResp)
+boxplot(freMPL5$ClaimNbResp ~ freMPL5$ClaimInd)
+hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 0])
+hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 1])
+ggplot(freMPL5, aes(x = ClaimNbResp)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+tab <- table(freMPL5$ClaimNbResp, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lorsque les accidents sont responsables.
+
+##### Etude par rapport au coût
+
+```{r}
+cor.test(freMPL5$ClaimNbResp, freMPL5$ClaimAmount)
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbResp)
+boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
+```
+
+La corrélation est surtout observable entre cette variable et la variable de coût moyen. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
+
+```{r}
+summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbResp & freMPL5$ClaimNbResp>0]/freMPL5$ClaimNbResp[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbResp & freMPL5$ClaimNbResp>0])
+```
+
+Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. Par contre, il y aurait a priori un coût moyen engendré par un accident de stationnement plus important que pour les deux catégories précédentes.
+
+### Bris de glace
+
+```{r}
+summary(freMPL5$ClaimNbWindscreen)
+quantile(freMPL5$ClaimNbWindscreen, seq(0,1,1/10))
+```
+
+L'évènement d'avoir au moins un bris de glace est relativement fréquent (environ 30%).
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+cor.test(freMPL5$ClaimNbWindscreen, as.numeric(freMPL5$ClaimInd))
+hist(freMPL5$ClaimNbWindscreen)
+boxplot(freMPL5$ClaimNbWindscreen ~ freMPL5$ClaimInd)
+hist(freMPL5$ClaimNbWindscreen[freMPL5$ClaimInd == 0], xlim=c(0,5))
+hist(freMPL5$ClaimNbWindscreen[freMPL5$ClaimInd == 1])
+ggplot(freMPL5, aes(x = ClaimNbWindscreen)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+tab <- table(freMPL5$ClaimNbWindscreen, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lors de birs de glace.
+
+##### Etude par rapport au coût
+
+```{r}
+cor.test(freMPL5$ClaimNbWindscreen, freMPL5$ClaimAmount)
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbWindscreen)
+boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbWindscreen))
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbWindscreen[freMPL5$ClaimAmount>0]), ylim=c(0,5000))
+```
+
+Ici, la p-value ne nous donne pas un seuil de confiance acceptable pour rejeter l'hypothèse de non corrélation. On pourrait alors penser qu'il n'y a pas de corrélation (ou qu'elle est faible). Ceci pourrait s'expliquer grâce au fait que cela représente des faibles coûts comparés aux dégats que peuvent causer les autres accidents. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
+
+```{r}
+a = freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbWindscreen & freMPL5$ClaimNbWindscreen>0]/freMPL5$ClaimNbWindscreen[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbWindscreen & freMPL5$ClaimNbWindscreen>0]
+summary(a)
+hist(a)
+hist(a, breaks = seq(0,14000,5), xlim = c(0,600), ylim = c(0,50))
+```
+
+Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. On trouve une moyenne assez faible. Cependant, elle correspond à peu près à 100 et on remarque que parmis ceux qui ont uniquement demandé des remboursements pour bris de glace, beaucoup d'assurés ont eu un coût moyen autour de 100€. Cela peut presque s'apparenter à un remboursement forfaitaire. Nous en discuterons davantage dans l'analyse consacrée à la variable de coût.
+
+### Panne
+
+```{r}
+summary(freMPL5$OutUseNb)
+quantile(freMPL5$OutUseNb, seq(0,1,1/20))
+```
+
+L'évènement d'avoir une panne est rare (environ 10%).
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+cor.test(freMPL5$OutUseNb, as.numeric(freMPL5$ClaimInd))
+hist(freMPL5$OutUseNb)
+boxplot(freMPL5$OutUseNb ~ freMPL5$ClaimInd)
+hist(freMPL5$OutUseNb[freMPL5$ClaimInd == 0])
+hist(freMPL5$OutUseNb[freMPL5$ClaimInd == 1])
+ggplot(freMPL5, aes(x = OutUseNb)) +
+  geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
+                position = "identity", bins = 30, alpha = 0.4) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+tab <- table(freMPL5$OutUseNb, freMPL5$ClaimInd)
+cols <- rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col = cols)
+```
+
+Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lors de pannes.
+
+##### Etude par rapport au coût
+
+```{r}
+cor.test(freMPL5$OutUseNb, freMPL5$ClaimAmount)
+plot(freMPL5$ClaimAmount ~ freMPL5$OutUseNb)
+boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$OutUseNb))
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
+```
+
+La p-value du test ne nous permet pas de rejeter l'hypothèse de non-corrélation. Cependant, le graphique des boxplots nous fait tout de même penser à un certain lien. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
+
+```{r}
+summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$OutUseNb & freMPL5$OutUseNb>0]/freMPL5$OutUseNb[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$OutUseNb & freMPL5$OutUseNb>0])
+```
+
+Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. On arrive à des données à peu près semblables que pour les deux premières covariables de sinistres.
+
+# Etude de la variable coût
+
+##### ...en fonction de la sinistralité
+
+```{r echo=TRUE}
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimInd)
+```
+
+```{r echo=TRUE}
+summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1]) #resumé lorsque de l'argent est demandé
+summary(freMPL5$ClaimAmount[freMPL5$ClaimInd == 0]) #evidemment toujours nul
+```
+
+```{r}
+hist(freMPL5$ClaimAmount[freMPL5$ClaimInd == 1], breaks=seq(0,100000,10),xlim=c(0,4000))
+```
+
+On a ici un graphique plus intéressant qui nous permettra de proposer éventuellement une loi pour la variable de coût. On remarque tout de fois quelques énormes pics de fréquence. Nous pouvons imaginer qu'il s'agit d'une dépense forfaitaire (comme par exemple un bris de glace qui a souvent le même prix).
+
+On remarque un premier pic entre 90 et 110 et un autre 1410 et 1420. Regardons à quoi cela pourrait être dû :
+
+```{r}
+summary(freMPL5[freMPL5$ClaimAmount<110 & freMPL5$ClaimAmount>90,])
+quantile(freMPL5$ClaimNbWindscreen[freMPL5$ClaimAmount<110 & freMPL5$ClaimAmount>90], seq(0,1,0.1))
+```
+
+On remarque que cette tranche représente 8,7% des assurés qui ont eu recours à un remboursement et une grande partie (au moins 40%) de ces assurés ont eu au moins un bris de glace.
+
+Pour le pic à 1410-1420 :
+
+```{r}
+summary(freMPL5[freMPL5$ClaimAmount<1419 & freMPL5$ClaimAmount>1409,])
+quantile(freMPL5$ClaimNbNonResp[freMPL5$ClaimAmount<1419 & freMPL5$ClaimAmount>1409], seq(0,1,0.1))
+quantile(freMPL5$ClaimNbResp[freMPL5$ClaimAmount<1419 & freMPL5$ClaimAmount>1409], seq(0,1,0.1))
+```
+
+On a ici au moins 30% d'accidents responsables et 20% d'accidents non responsables.
+
+# Etude de la variable d'indication de remboursement
+
+```{r}
+summary(freMPL5[freMPL5$ClaimInd == 0,])
+summary(freMPL5[freMPL5$ClaimInd == 1,])
+```
+
+On remarque que LicAge et DrivAge réduisent le risque d'avoir un sinistre.
+
+De même, plus le score de malus est haut et plus l'assuré a de risque d'avoir un sinistre.
+
+Avoir une limite de kilomètres semblent aussi réduire les risques.
+
+Nous avons déjà beaucoup analysé ces données dans les sections précédentes.

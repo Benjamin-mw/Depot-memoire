@@ -421,7 +421,8 @@ Lègère tendance à la hausse du prix à payer pour les individus ayant pris un
 
 Cette catégorie devra être regroupée (idem CSP)
 
-<<<<<<< HEAD
+\<\<\<\<\<\<\< HEAD
+
 ```{r}
 summary(freMPL5$RiskArea)
 ```
@@ -454,7 +455,7 @@ boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$RiskArea[freMPL5$Cl
 ```
 
 Les individus ayant tendances à payer plus cher les sinistres se situent dans les zones de risques de niveau les plus élévées.
-=======
+
 # Covariables liées aux sinitres possibles
 
 ```{r}
@@ -468,7 +469,6 @@ cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMP
 ```
 
 En utilisant le test de Pearson et le test de Kendall, on obtient que la somme des sinitres possibles est corrélée avec l'indicateur ClaimInd mais aussi avec la variable ClaimAmount. Nous allons donc les étudier indépendament pour trouver l'impact de ces covariables sur les variables à expliquer.
->>>>>>> 8511e3b9238ed2d48a8da1035d8e36e77c1690dd
 
 ### Accident responsable
 

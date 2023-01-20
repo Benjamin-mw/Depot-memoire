@@ -24,6 +24,7 @@ boxplot(freMPL5$ClaimAmount)
 plot(freMPL5$ClaimAmount ~ freMPL5$Freq)
 
 x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19)]
+corrplot(round(cor(x),2),method="ellipse")
 
 #C'est une ACP sur les données quantitatives (on a ici considéré la zone
 #comme faisant partie des variables quantitatives car c'est "possibly ordered")

@@ -8,7 +8,7 @@ date: "2023-01-19"
 
 ## Import de packages utiles
 
-```{r}
+```{r, message=FALSE}
 library(FactoMineR)
 library(factoextra)
 library(CASdatasets)
@@ -37,7 +37,7 @@ library(plotROC)
 ## Documentation et import du dataset
 
 ```{r}
-?CASdatasets #ouvre l'aide pour comprendre le dataset
+#?CASdatasets #ouvre l'aide pour comprendre le dataset
 data(freMPL5)
 summary(freMPL5)
 #Cette nouvelle covariable sera présentée plus tard
@@ -58,12 +58,7 @@ On remarque que certaines variables sont numériques au lieu d'être considéré
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
 freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
-#freMPL5$ClaimNbResp <- factor(freMPL5$ClaimNbResp)
-#freMPL5$ClaimNbNonResp <- factor(freMPL5$ClaimNbNonResp)
-#freMPL5$ClaimNbParking <- factor(freMPL5$ClaimNbParking)
-#freMPL5$ClaimNbFireTheft <- factor(freMPL5$ClaimNbFireTheft)
-#freMPL5$ClaimNbWindscreen <- factor(freMPL5$ClaimNbWindscreen)
-#freMPL5$OutUseNb <- factor(freMPL5$OutUseNb)
+freMPL5$OutUseNb <- as.numeric(freMPL5$OutUseNb)
 ```
 
 ### Remarque sur les données
@@ -156,8 +151,8 @@ ggplot(freMPL5, aes(x = DrivAge)) +
 ```
 
 ```{r}
-freMPL5$DrivAge <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
-tab <- table(freMPL5$DrivAge, freMPL5$ClaimInd)
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+tab <- table(freMPL5$DrivAge_fact, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
 ```
@@ -167,12 +162,21 @@ L'âge du conducteur semble donc avoir un impact dans le risque d'avoir un sinis
 ##### Etude par rapport au coût
 
 ```{r}
-plot(freMPL5$ClaimAmount ~ freMPL5$DrivAge)
-boxplot(freMPL5$ClaimAmount ~ freMPL5$DrivAge)
-boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$DrivAge[freMPL5$ClaimAmount>0], ylim=c(0,8000))
+plot(freMPL5$ClaimAmount ~ freMPL5$DrivAge_fact)
+boxplot(freMPL5$ClaimAmount ~ freMPL5$DrivAge_fact)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$DrivAge_fact[freMPL5$ClaimAmount>0], ylim=c(0,8000))
 ```
 
 On observe donc un risque accru pour les jeunes conducteurs mais on remarque aussi que le risque augmente de nouveau après 50 ans (cela pourrait correspondre au moment où les enfants sont en âge de conduire sur le véhicule des parents).
+
+#### Etude d'un lien avec les Catégories Socio-Professionnelles
+
+```{r}
+plot(freMPL5$DrivAge ~ freMPL5$SocioCateg)
+plot(freMPL5$DrivAge, freMPL5$SocioCateg)
+plot(freMPL5$SocioCateg, freMPL5$DrivAge)
+summary(c(freMPL5$DrivAge, freMPL5$SocioCateg))
+```
 
 ### Etude de la variable d'ancienneté du permis (LicAge)
 
@@ -293,6 +297,7 @@ Il y a une claire corrélation et le facteur est très fort pour ClaimInd
 
 ```{r}
 hist(freMPL5$Exposure)
+boxplot(freMPL5$Exposure)
 hist(freMPL5$Exposure[freMPL5$ClaimInd == 0])
 summary(freMPL5$Exposure[freMPL5$ClaimInd == 0])
 hist(freMPL5$Exposure[freMPL5$ClaimInd == 1])
@@ -421,7 +426,7 @@ boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$RiskArea[freMPL5$Cl
 
 Les individus ayant tendances à payer plus cher les sinistres se situent dans les zones de risques de niveau les plus élévées.
 
-# Covariables liées aux sinitres possibles
+# Covariables liées aux sinitres durant les 4 années précédentes
 
 ```{r}
 cor.test(freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb, as.numeric(freMPL5$ClaimInd))
@@ -437,6 +442,7 @@ En utilisant le test de Pearson et le test de Kendall, on obtient que la somme d
 ```{r}
 summary(freMPL5$ClaimNbResp)
 quantile(freMPL5$ClaimNbResp, seq(0,1,1/10))
+hist(freMPL5$ClaimNbResp)
 ```
 
 L'évènement d'avoir au moins un accident responsable est assez rare (environ 20%).
@@ -470,19 +476,14 @@ boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
 ```
 
-La corrélation est surtout observable entre cette variable et la variable de coût moyen. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
-
-```{r}
-summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbResp & freMPL5$ClaimNbResp>0]/freMPL5$ClaimNbResp[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbResp & freMPL5$ClaimNbResp>0])
-```
-
-Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. Pour estimer un peu plus finement en même temps que les coût moyen des autres covariables de sinistres possibles, il faudrait faire un glm par exemple.
+La corrélation est surtout observable entre cette variable et la variable de coût moyen.
 
 ### Accident non-responsable
 
 ```{r}
 summary(freMPL5$ClaimNbNonResp)
 quantile(freMPL5$ClaimNbNonResp, seq(0,1,1/10))
+hist(freMPL5$ClaimNbNonResp)
 ```
 
 L'évènement d'avoir au moins un accident non responsable est assez rare (environ 20%).
@@ -517,19 +518,14 @@ boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbNonResp))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbNonResp[freMPL5$ClaimAmount>0]), ylim=c(0,30000))
 ```
 
-La corrélation est légerement observable entre cette variable et le coût moyen. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
-
-```{r}
-summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbNonResp & freMPL5$ClaimNbNonResp>0]/freMPL5$ClaimNbNonResp[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbNonResp & freMPL5$ClaimNbNonResp>0])
-```
-
-Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. On obtient par ailleurs des valeurs très proches du cas des accidents responsables.
+La corrélation est légerement observable entre cette variable et le coût moyen.
 
 ### Parking
 
 ```{r}
 summary(freMPL5$ClaimNbParking)
 quantile(freMPL5$ClaimNbParking, seq(0,1,1/20))
+hist(freMPL5$ClaimNbParking)
 ```
 
 L'évènement d'avoir au moins un accident en se garant est très rare (environ 5%).
@@ -557,25 +553,20 @@ Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il
 ##### Etude par rapport au coût
 
 ```{r}
-cor.test(freMPL5$ClaimNbResp, freMPL5$ClaimAmount)
-plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbResp)
-boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
-boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
+cor.test(freMPL5$ClaimNbParking, freMPL5$ClaimAmount)
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbParking)
+boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbParking))
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbParking[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
 ```
 
-La corrélation est surtout observable entre cette variable et la variable de coût moyen. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
-
-```{r}
-summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbParking & freMPL5$ClaimNbParking>0]/freMPL5$ClaimNbParking[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbParking & freMPL5$ClaimNbParking>0])
-```
-
-Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. Pour estimer un peu plus finement en même temps que les coût moyen des autres covariables de sinistres possibles, il faudrait faire un glm par exemple.
+La corrélation est surtout observable entre cette variable et la variable de coût moyen.
 
 ### Incendie ou vol
 
 ```{r}
 summary(freMPL5$ClaimNbFireTheft)
 quantile(freMPL5$ClaimNbFireTheft, seq(0,1,1/20))
+hist(freMPL5$ClaimNbFireTheft)
 ```
 
 L'évènement d'avoir un vol ou incendie de la voiture est très rare (environ 5%).
@@ -583,45 +574,40 @@ L'évènement d'avoir un vol ou incendie de la voiture est très rare (environ 5
 ##### Etude par rapport à la sinistralité
 
 ```{r}
-cor.test(freMPL5$ClaimNbResp, as.numeric(freMPL5$ClaimInd))
-hist(freMPL5$ClaimNbResp)
-boxplot(freMPL5$ClaimNbResp ~ freMPL5$ClaimInd)
-hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 0])
-hist(freMPL5$ClaimNbResp[freMPL5$ClaimInd == 1])
-ggplot(freMPL5, aes(x = ClaimNbResp)) +
+cor.test(freMPL5$ClaimNbFireTheft, as.numeric(freMPL5$ClaimInd))
+hist(freMPL5$ClaimNbFireTheft)
+boxplot(freMPL5$ClaimNbFireTheft ~ freMPL5$ClaimInd)
+hist(freMPL5$ClaimNbFireTheft[freMPL5$ClaimInd == 0])
+hist(freMPL5$ClaimNbFireTheft[freMPL5$ClaimInd == 1])
+ggplot(freMPL5, aes(x = ClaimNbFireTheft)) +
   geom_histogram(aes(color = ClaimInd, fill = ClaimInd), 
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
-tab <- table(freMPL5$ClaimNbResp, freMPL5$ClaimInd)
+tab <- table(freMPL5$ClaimNbFireTheft, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
 ```
 
-Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lorsque les accidents sont responsables.
+Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lorsqu'il y a eu vol ou incendie.
 
 ##### Etude par rapport au coût
 
 ```{r}
-cor.test(freMPL5$ClaimNbResp, freMPL5$ClaimAmount)
-plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbResp)
-boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbResp))
-boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbResp[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
+cor.test(freMPL5$ClaimNbFireTheft, freMPL5$ClaimAmount)
+plot(freMPL5$ClaimAmount ~ freMPL5$ClaimNbFireTheft)
+boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbFireTheft))
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbFireTheft[freMPL5$ClaimAmount>0]), ylim=c(0,15000))
 ```
 
-La corrélation est surtout observable entre cette variable et la variable de coût moyen. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
-
-```{r}
-summary(freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbResp & freMPL5$ClaimNbResp>0]/freMPL5$ClaimNbResp[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbResp & freMPL5$ClaimNbResp>0])
-```
-
-Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. Par contre, il y aurait a priori un coût moyen engendré par un accident de stationnement plus important que pour les deux catégories précédentes.
+La corrélation est surtout observable entre cette variable et la variable de coût moyen.
 
 ### Bris de glace
 
 ```{r}
 summary(freMPL5$ClaimNbWindscreen)
 quantile(freMPL5$ClaimNbWindscreen, seq(0,1,1/10))
+hist(freMPL5$ClaimNbWindscreen)
 ```
 
 L'évènement d'avoir au moins un bris de glace est relativement fréquent (environ 30%).
@@ -655,22 +641,14 @@ boxplot(freMPL5$ClaimAmount ~ factor(freMPL5$ClaimNbWindscreen))
 boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ factor(freMPL5$ClaimNbWindscreen[freMPL5$ClaimAmount>0]), ylim=c(0,5000))
 ```
 
-Ici, la p-value ne nous donne pas un seuil de confiance acceptable pour rejeter l'hypothèse de non corrélation. On pourrait alors penser qu'il n'y a pas de corrélation (ou qu'elle est faible). Ceci pourrait s'expliquer grâce au fait que cela représente des faibles coûts comparés aux dégats que peuvent causer les autres accidents. On peut essayer d'estimer le coût moyen par accident responsable de la manière suivante :
-
-```{r}
-a = freMPL5$ClaimAmount[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbWindscreen & freMPL5$ClaimNbWindscreen>0]/freMPL5$ClaimNbWindscreen[freMPL5$ClaimNbResp+freMPL5$ClaimNbNonResp+freMPL5$ClaimNbParking+freMPL5$ClaimNbFireTheft+freMPL5$ClaimNbWindscreen+freMPL5$OutUseNb == freMPL5$ClaimNbWindscreen & freMPL5$ClaimNbWindscreen>0]
-summary(a)
-hist(a)
-hist(a, breaks = seq(0,14000,5), xlim = c(0,600), ylim = c(0,50))
-```
-
-Cette technique est sûrement très mauvaise puisqu'on rejette un grand nombre de données dans le calcul de ce coût moyen. On trouve une moyenne assez faible. Cependant, elle correspond à peu près à 100 et on remarque que parmis ceux qui ont uniquement demandé des remboursements pour bris de glace, beaucoup d'assurés ont eu un coût moyen autour de 100€. Cela peut presque s'apparenter à un remboursement forfaitaire. Nous en discuterons davantage dans l'analyse consacrée à la variable de coût.
+Ici, la p-value ne nous donne pas un seuil de confiance acceptable pour rejeter l'hypothèse de non corrélation. On pourrait alors penser qu'il n'y a pas de corrélation (ou qu'elle est faible). Ceci pourrait s'expliquer grâce au fait que cela représente des faibles coûts comparés aux dégats que peuvent causer les autres accidents.
 
 ### Panne
 
 ```{r}
 summary(freMPL5$OutUseNb)
 quantile(freMPL5$OutUseNb, seq(0,1,1/20))
+hist(freMPL5$OutUseNb)
 ```
 
 L'évènement d'avoir une panne est rare (environ 10%).
@@ -764,3 +742,45 @@ De même, plus le score de malus est haut et plus l'assuré a de risque d'avoir 
 Avoir une limite de kilomètres semblent aussi réduire les risques.
 
 Nous avons déjà beaucoup analysé ces données dans les sections précédentes.
+
+# Lien avec l'analyse proposée par Wultrish
+
+Wultrish classe les données en plusieurs catégories. Nous allons donc classer les covariables telles que Wultrish le propose :
+
+-   covariables liées au conducteur : Gender, MariStat, SocioCateg, DrivAge
+
+-   covariables liées au véhicule : .
+
+-   covariables liées aux spécificités du contrat d'assurance : (exposure,) RecordBeg, RecordEnd, HasKmLimit
+
+-   covariables géographiques : RiskArea
+
+-   covariables liées à la conduite et l'expérience : licAge, VehUsage, BonusMalus, ClaimNbResp, ClaimNbNonResp, ClaimNbParking, ClaimNbFireTheft, ClaimNbWindscreen, OutUseNb
+
+On remarque qu'on ne possède aucune caractéristique sur le type de véhicule que possède l'assuré. Cela pourra donc compliquer la tâche lors de l'estimation du coût moyen d'un sinistre pour un assuré. Cela devra être spécifié ou sera justifié lors de la sélection de modèle (notamment lors de la phase de prédiction).
+
+Premièrement, on ne pourra pas avoir accès au genre lors de la tarification. Cela enlèvera donc une covariable.
+
+Habituellement, on utilise une approche fréquence-sévérité où la fréquence est le nombre d'accidents que l'assuré a obtenu. Cependant, on aura ici que la fréquence est soit 1, soit 0 selon le fait qu'il ait eu un sinistre ou pas.
+
+Nous aurons donc la formule suivante :
+
+$$
+E[X_i]=E[F_i] \cdot E[B_i]
+$$
+
+avec $B_i$ la variable de coût moyen et $F_i$ la variable de fréquence qui sera une $Ber(q_i)$ donc
+
+$$
+E[F_i] = q_i
+$$
+
+d'où
+
+$$
+E[X_i]=q_i \cdot E[B_i]
+$$
+
+Les variables ClaimNbResp, ClaimNbNonResp, ClaimNbParking, ClaimNbFireTheft, ClaimNbWindscreen, OutUseNb traitent des sinistres passés durant les 4 années précédentes. Ils permettront peut-être de déterminer si l'assuré a des risques d'avoir de nouveau ce genre de sinistres qui sont plus ou moins coûteux selon leur classification.
+
+Pour la distribution des coûts moyens, on peut remarquer qu'il y a une "bosse" autour de 100€, ce qui pourrait être une concentration d'assurés ayant eu à déclencher la garantie bris de glace. Ne sachant par comment prédire cette donnée (nous n'avons pas une variable à expliquer pour cette garantie), nous pourrions essayer de faire une prédiciton à partir des données passées (ClaimWindscreen sur les 4 années précédentes). Mais alors, il faudra penser à une façon d'isoler cette garanti pour ne pas l'appliquer à tout le monde dans le modèle général.

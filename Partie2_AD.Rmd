@@ -1,0 +1,117 @@
+---
+title: "Analyse_de_données_partie_2"
+author: "Dudot Lucas - Lapaz Eudes - Moinard Benjamin - Nanoux Louis"
+date: "2023-01-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import de packages utiles
+
+```{r, message=FALSE}
+library(FactoMineR)
+library(factoextra)
+library(CASdatasets)
+library(tidyverse)
+library(MASS)
+library(knitr)
+library(ggplot2)
+library(cowplot)
+library(reshape2)
+library(dplyr)
+library(GGally)
+library(corrplot)
+library(carData) 
+library(car)
+library(questionr)
+library(multcomp)
+library(dplyr)
+library(leaps)
+library(TeachingDemos)
+library(FactoMineR)
+library(factoextra)
+library(ROCR)
+library(plotROC)
+```
+
+## Documentation et import du dataset
+
+```{r}
+#?CASdatasets #ouvre l'aide pour comprendre le dataset
+data(freMPL5)
+summary(freMPL5)
+```
+
+On remarque que certaines variables sont numériques au lieu d'être considérées comme des facteurs. Nous allons donc les changer :
+
+```{r}
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$OutUseNb <- as.numeric(freMPL5$OutUseNb)
+```
+
+```{r}
+A = kde2d(freMPL5$DrivAge, freMPL5$BonusMalus)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$LicAge)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$Exposure)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$ClaimNbNonResp)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$BonusMalus, freMPL5$LicAge)
+filled.contour(A)
+A = kde2d(freMPL5$BonusMalus, freMPL5$Exposure)
+filled.contour(A)
+A = kde2d(freMPL5$BonusMalus, freMPL5$ClaimNbNonResp)
+filled.contour(A)
+A = kde2d(freMPL5$BonusMalus, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$BonusMalus, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$LicAge, freMPL5$Exposure)
+filled.contour(A)
+A = kde2d(freMPL5$LicAge, freMPL5$ClaimNbNonResp)
+filled.contour(A)
+A = kde2d(freMPL5$LicAge, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$LicAge, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$Exposure, freMPL5$ClaimNbNonResp)
+filled.contour(A)
+A = kde2d(freMPL5$Exposure, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$Exposure, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$ClaimNbNonResp, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$ClaimNbNonResp, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$ClaimNbWindscreen, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+On remarque donc uniquement une réelle forte corrélation entre LicAge et DrivAge pour les variables continues.

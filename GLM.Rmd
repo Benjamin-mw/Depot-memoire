@@ -38,5 +38,9 @@ Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
 glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, 
     data = cout,
-    offset = log(Exposure), family = inverse.gaussian(link = "1/mu^2"))
+    offset = log(Exposure), family = Gamma )
+
+glm(ClaimAmount ~ 1, 
+    data = cout,
+    offset = Exposure)
 ```

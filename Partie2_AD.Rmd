@@ -148,7 +148,6 @@ freMPL5$ClaimNbResp <- factor(freMPL5$ClaimNbResp)
 freMPL5$ClaimNbNonResp <- factor(freMPL5$ClaimNbNonResp)
 freMPL5$ClaimNbParking <- factor(freMPL5$ClaimNbParking)
 freMPL5$ClaimNbWindscreen <- factor(freMPL5$ClaimNbWindscreen)
-freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 freMPL5$OutUseNb <- factor(freMPL5$OutUseNb)
 
 
@@ -250,3 +249,5 @@ fviz_mca_ind(res.mca, label="none", habillage = 18,
        addEllipses=TRUE, ellipse.level=0.95)
 
 ```
+
+# k-means

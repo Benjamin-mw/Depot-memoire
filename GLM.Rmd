@@ -1,0 +1,42 @@
+---
+title: "GLM"
+author: "Dudot Lucas - Lapaz Eudes - Moinard Benjamin - Nanoux Louis"
+date: "2023-01-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# GLM pour la variable coût
+
+## Transformation de certaines variables en variables catégorielles
+
+```{r}
+data(freMPL5)
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+
+
+
+#Pour faire une analyse de données, nous allons transformer toutes les variables
+#quantitatives en variables qualitatives de manière à avoir un nombre homogènes
+#d'assurés dans chaque classe.
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+
+freMPL5$BonusMalus <- cut(freMPL5$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
+```
+
+Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que plus tard dans la tarification ?
+
+## Premier modèle
+
+```{r}
+cout <- freMPL5[freMPL5$ClaimInd == 1,]
+glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, 
+    data = cout,
+    offset = log(Exposure), family = inverse.gaussian(link = "1/mu^2"))
+```

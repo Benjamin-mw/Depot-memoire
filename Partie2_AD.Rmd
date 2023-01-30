@@ -53,6 +53,8 @@ freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 freMPL5$OutUseNb <- as.numeric(freMPL5$OutUseNb)
 ```
 
+# Quelques nouveaux plots de corrélation
+
 ```{r}
 A = kde2d(freMPL5$DrivAge, freMPL5$BonusMalus)
 filled.contour(A)
@@ -115,6 +117,8 @@ filled.contour(A)
 
 On remarque donc uniquement une réelle forte corrélation entre LicAge et DrivAge pour les variables continues.
 
+# ACP
+
 ```{r}
 #freMPL veut dire French Motor Personal Line datasets
 #On utilisera le dataset 5 qui contient environ 26000 contrats de l'annee 2004
@@ -126,6 +130,10 @@ corrplot(round(cor(x),2),method="ellipse")
 #comme faisant partie des variables quantitatives car c'est "possibly ordered")
 PCA(x)
 ```
+
+# ACM
+
+On va ici modifier les données pour faire une ACM.
 
 ```{r}
 #On veut ici supprimer les lignes dont les montants réclamés sont négatifs.
@@ -154,6 +162,8 @@ freMPL5$BonusMalus <- cut(freMPL5$BonusMalus, c(50,54,seq(60, 200, 20)), include
 freMPL5$IntervalCout <- cut(freMPL5$ClaimAmount, c(0,seq(1, 100000, 1000)), include.lowest = TRUE)
 ```
 
+Voici la réalisation de l'ACM :
+
 ```{r}
 fact <- select(freMPL5, !c(RecordBeg, RecordEnd, ClaimAmount))
 
@@ -171,7 +181,7 @@ mca.graph(res.mca, choix = "var", axes = 1)
 #Un premier modèle linéaire généralisé de loi gamma
 data_cout = select(freMPL5[freMPL5$ClaimInd == 1, ], -c("ClaimInd", "IntervalCout","Freq","RecordBeg", "RecordEnd"))
 summary(data_cout)
-mod0 <- glm(ClaimAmount~LicAge , data = data_cout, family=Gamma(link="inverse"))
+mod0 <- glm(ClaimAmount~LicAge , data = data_cout, family=Gamma(link="inverse"), offset = Exposure)
 summary(mod0)
 
 #Etude des résidus de Pearson et de Deviance

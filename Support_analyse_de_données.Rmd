@@ -339,6 +339,12 @@ Nous étudierons cela plus en profondeur dans l'étude d'une éventuelle indépe
 
 Cette catégorie devra être regroupée car elle contient trop de modalités de facteur.
 
+```{r}
+summary(freMPL5$SocioCateg)
+```
+
+On peut considérer que, si une catégorie est représentée par moins de 300 personnes (sur l'échantillon des plus de 25000 contrats), alors on pourra les enlever.
+
 # Covariables liées au véhicule ou à l'emplacement
 
 ### Utilisation du véhicule

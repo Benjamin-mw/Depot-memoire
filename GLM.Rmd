@@ -9,6 +9,32 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(CASdatasets)
+library(tidyverse)
+library(MASS)
+library(knitr)
+library(ggplot2)
+library(cowplot)
+library(reshape2)
+library(dplyr)
+library(GGally)
+library(corrplot)
+library(carData) 
+library(car)
+library(questionr)
+library(multcomp)
+library(dplyr)
+library(leaps)
+library(TeachingDemos)
+library(FactoMineR)
+library(factoextra)
+library(ROCR)
+library(plotROC)
+```
+
 # GLM pour la variable coût
 
 ## Transformation de certaines variables en variables catégorielles
@@ -36,11 +62,20 @@ Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que
 
 ```{r}
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
-glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, 
-    data = cout,
-    offset = log(Exposure), family = Gamma )
+#glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma )
 
 glm(ClaimAmount ~ 1, 
     data = cout,
-    offset = Exposure)
+    offset = Exposure, family = Gamma(), start = 2277)
+
 ```
+
+# GLM pour la variable fréquence
+
+On remarque que la variable à étudier vaut uniquement 0 ou 1 (indique si l'assuré a eu un sinistre ou non). Nous allons donc dans un premier temps la modéliser par une loi de Bernoulli. Cette fois-ci, on prend le jeu de données complet (pas uniquement les assurés ayant eu des sinistres évidemment, contrairement à la partie précédente).
+
+```{r}
+glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial() )
+```
+
+Il y a ici encore plein de catégories socio-professionnelles à enlever ou regrouper.

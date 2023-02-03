@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, echo = TRUE, message = FALSE, error = FALSE}
 library(FactoMineR)
 library(factoextra)
 library(CASdatasets)
@@ -46,33 +46,77 @@ freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 
-
-
-#Pour faire une analyse de données, nous allons transformer toutes les variables
-#quantitatives en variables qualitatives de manière à avoir un nombre homogènes
-#d'assurés dans chaque classe.
 freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
-
-freMPL5$BonusMalus <- cut(freMPL5$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
 ```
 
 Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que plus tard dans la tarification ?
 
-## Premier modèle
+## Premiers modèles
+
+```{r, error = TRUE}
+cout <- freMPL5[freMPL5$ClaimInd == 1,]
+glm(ClaimAmount ~ 1, data = cout, offset = log(Exposure), family = Gamma())
+```
+
+### Test avec un modèle linéaire simple
+
+Après cette première erreur, nous avons essayé un modèle linéaire simple pour voir si l'erreur venait uniquement de start ou d'une autre chose triviale.
 
 ```{r}
-cout <- freMPL5[freMPL5$ClaimInd == 1,]
-#glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma )
+lm(ClaimAmount ~ 1, data = cout, offset = Exposure)
+```
 
-glm(ClaimAmount ~ 1, 
-    data = cout,
-    offset = Exposure, family = Gamma(), start = 2277)
+```{r}
+lm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
+```
 
+Ce modèle est sûrement très mauvais mais il permet de voir que certaines choses fonctionnent.
+
+### Test pour voir les erreurs avec un modèle Gamma
+
+```{r, error = TRUE}
+glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma())
+```
+
+```{r, error = TRUE}
+glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma(), start = 0)
+```
+
+```{r, error = TRUE}
+glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma(), start = rep(0, 49))
+```
+
+```{r, error = TRUE}
+glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma(), start = rep(1000, 49))
 ```
 
 # GLM pour la variable fréquence
 
 On remarque que la variable à étudier vaut uniquement 0 ou 1 (indique si l'assuré a eu un sinistre ou non). Nous allons donc dans un premier temps la modéliser par une loi de Bernoulli. Cette fois-ci, on prend le jeu de données complet (pas uniquement les assurés ayant eu des sinistres évidemment, contrairement à la partie précédente).
+
+Habituellement, on utilise une approche fréquence-sévérité où la fréquence est le nombre d'accidents que l'assuré a obtenu. Cependant, on aura ici que la fréquence est soit 1, soit 0 selon le fait qu'il ait eu un sinistre ou pas.
+
+Nous aurons donc la formule suivante :
+
+$$
+E[X_i]=E[F_i] \cdot E[B_i]
+$$
+
+avec $B_i$ la variable de coût moyen et $F_i$ la variable de fréquence qui sera une $Ber(q_i)$ donc
+
+$$
+E[F_i] = q_i
+$$
+
+d'où
+
+$$
+E[X_i]=q_i \cdot E[B_i]
+$$
+
+**Remarque :**
+
+Les variables ClaimNbResp, ClaimNbNonResp, ClaimNbParking, ClaimNbFireTheft, ClaimNbWindscreen, OutUseNb traitent des sinistres passés durant les 4 années précédentes. Ils permettront peut-être de déterminer si l'assuré a des risques d'avoir de nouveau ce genre de sinistres qui sont plus ou moins coûteux selon leur classification.
 
 ```{r}
 glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial() )

@@ -29,7 +29,6 @@ library(multcomp)
 library(dplyr)
 library(leaps)
 library(TeachingDemos)
-library(FactoMineR)
 library(factoextra)
 library(ROCR)
 library(plotROC)
@@ -140,7 +139,7 @@ glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonRes
 Il y a ici encore plein de catégories socio-professionnelles à enlever ou regrouper.
 
 ```{r}
-freMPL5 <- subset(freMPL5, freMPL5$SocioCateg != "CSP30" & freMPL5$SocioCateg !="CSP45" & freMPL5$SocioCateg !="CSP63")
+freMPL5 <- subset(freMPL5, freMPL5$SocioCateg != "CSP30" & freMPL5$SocioCateg !="CSP45" & freMPL5$SocioCateg !="CSP63" & freMPL5$SocioCateg !="CSP61")
 
 perm <- sample(nrow(freMPL5),80/100*nrow(freMPL5))
 freMPL5.train <- freMPL5[perm,]
@@ -153,7 +152,15 @@ summary(bin.log)
 ```
 
 ```{r}
-predict.glm(bin.log, newdata = freMPL5.test, type = "response")
+prediction <- predict.glm(bin.log, newdata = freMPL5.test, type = "response")
+summary(prediction)
+hist(prediction)
+```
+
+```{r}
+estimation <- bin.log$fitted.values
+estimation
+hist(estimation)
 ```
 
 problème: dans SocioCateg, il y a CSP30 qui apparait dans test mais pas dans train
@@ -163,5 +170,5 @@ summary(freMPL5$SocioCateg)
 ```
 
 ```{r}
-
+summary(freMPL5$ClaimInd)
 ```

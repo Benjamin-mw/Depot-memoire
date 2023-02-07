@@ -234,11 +234,138 @@ Il n'y a pas de claire tendance une nouvelle fois. Cette variable ne sera sûrem
 
 ### Genre
 
+##### Etude par rapport à la sinistralité
+
+```{r}
+summary(freMPL5$Gender)
+
+#create the contingency table
+Gender_contingence <- table(freMPL5$Gender, freMPL5$ClaimInd)
+Gender_contingence
+
+
+#Création d'un camembert pour les non-sinistres
+
+x_1=c(Gender_contingence[1,1]/(Gender_contingence[1,1]+Gender_contingence[1,2]),Gender_contingence[2,1]/(Gender_contingence[2,1]+Gender_contingence[2,2]))
+labels_1=c("Female","Male")
+
+df_1=data.frame(x_1,
+              labels_1)
+
+
+ggplot(df_1, aes(x="", y=x_1, fill=labels_1)) +geom_bar(width = 1, stat = "identity") + coord_polar("y", start=0) +theme_void()+ggtitle("Proportion de non sinistre par genre")
+
+#Création d'un camembert pour les sinistres
+
+x_2=c(Gender_contingence[1,2]/(Gender_contingence[1,1]+Gender_contingence[1,2]),Gender_contingence[2,2]/(Gender_contingence[2,1]+Gender_contingence[2,2]))
+labels_2=c("Female","Male")
+
+df_2=data.frame(x_2,
+              labels_2)
+
+ggplot(df_2, aes(x="", y=x_2, fill=labels_2)) +geom_bar(width = 1, stat = "identity") + coord_polar("y", start=0) +theme_void()+ggtitle("Proportion de sinsitre par genre")
+
+
+```
+
+Il est important de remarquer que l'échantillon contient deux fois plus d'hommes que de femmes. Les camemberts sont obtenus en prenant en compte la pondération de chaque genre au sein du groupe d'individus
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+Le groupe constitué des hommes ayant commis un sinistre semble réclamé les mêmes montants que le groupe constitué des femmes ayant commis un sinistre. Il n'a y pas de distinction flagrante entre les sexes.
+
 ### Statut marital
+
+```{r}
+summary(freMPL5$MariStat)
+```
+
+##### Etude par rapport à la sinistralité
+
+```{r}
+#create the contingency table
+MariStat_contingence <- table(freMPL5$MariStat, freMPL5$ClaimInd)
+MariStat_contingence
+
+
+#Création d'un camembert pour les non-sinistres
+
+x_1=c(MariStat_contingence[1,1]/(MariStat_contingence[1,1]+MariStat_contingence[1,2]),MariStat_contingence[2,1]/(MariStat_contingence[2,1]+MariStat_contingence[2,2]))
+labels_1=c("Alone","Other")
+
+df_1=data.frame(x_1,
+              labels_1)
+
+
+ggplot(df_1, aes(x="", y=x_1, fill=labels_1)) +geom_bar(width = 1, stat = "identity") + coord_polar("y", start=0) +theme_void()+ggtitle("Proportion de non sinistre par statut marital")
+
+#Création d'un camembert pour les sinistres
+
+x_2=c(MariStat_contingence[1,2]/(MariStat_contingence[1,1]+MariStat_contingence[1,2]),MariStat_contingence[2,2]/(MariStat_contingence[2,1]+MariStat_contingence[2,2]))
+labels_2=c("Alone","Other")
+
+df_2=data.frame(x_2,
+              labels_2)
+
+ggplot(df_2, aes(x="", y=x_2, fill=labels_2)) +geom_bar(width = 1, stat = "identity") + coord_polar("y", start=0) +theme_void()+ggtitle("Proportion de sinsitre par statut marital")
+
+
+```
+
+Les gens seuls semblent être légèrement plus impliqués dans des sinistres que les autres individus. Cela peut s'expliquer par une prise de risque plus importante sur les routes.
+
+```{r}
+boxplot(freMPL5$ClaimAmount ~ freMPL5$MariStat)
+boxplot(freMPL5$ClaimAmount[freMPL5$ClaimAmount>0] ~ freMPL5$MariStat[freMPL5$ClaimAmount>0], ylim=c(0,10000))
+```
+
+Les deux groupes partagent la même médiane. Cependant, on observe que les gens seuls ont tendance à réclamer des montants plus élevés. On peut expliquer cela par le fait que ces derniers prennent plus de risque sur la route et peuvent donc être impliqués dans des sinistres plus élevés.
 
 ### CSP
 
 Cette catégorie devra être regroupée car elle contient trop de modalités de facteur.
+
+```{r}
+summary(freMPL5$SocioCateg)
+```
+
+##### Etude par rapport à la sinistralité 
+
+```{r}
+
+tab=table(freMPL5$SocioCateg,freMPL5$ClaimInd)
+cols=rainbow(nlevels(freMPL5$ClaimInd))
+plot(tab,col=cols)
+
+#create the contingency table
+Socio_contingence <- table(freMPL5$SocioCateg, freMPL5$ClaimInd)
+Socio_contingence
+
+#Création d'un camembert pour les sinistres
+k=data.frame()
+x_2=for(i in range(33)){k<-c(k,Socio_contingence[i,1])}
+x_2
+
+q=data.frame(1)
+q=c(q,4)
+q
+c(list(),Socio_contingence[2,1],Socio_contingence[10,1])
+labels_2=c("Alone","Other")
+
+df_2=data.frame(x_2,
+              labels_2)
+
+ggplot(df_2, aes(x="", y=x_2, fill=labels_2)) +geom_bar(width = 1, stat = "identity") + coord_polar("y", start=0) +theme_void()+ggtitle("Proportion de sinsitre par statut marital")
+
+
+
+```
 
 ### Utilisation du véhicule
 

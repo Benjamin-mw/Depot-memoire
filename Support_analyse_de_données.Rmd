@@ -350,6 +350,10 @@ Nous étudierons cela plus en profondeur dans l'étude d'une éventuelle indépe
 
 ### CSP
 
+```{r}
+
+```
+
 Cette catégorie devra être regroupée car elle contient trop de modalités de facteur.
 
 ```{r}

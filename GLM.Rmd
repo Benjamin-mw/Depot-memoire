@@ -40,7 +40,7 @@ library(plotROC)
 
 ```{r}
 data(freMPL5)
-freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+#freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
@@ -118,6 +118,11 @@ $$
 Les variables ClaimNbResp, ClaimNbNonResp, ClaimNbParking, ClaimNbFireTheft, ClaimNbWindscreen, OutUseNb traitent des sinistres passés durant les 4 années précédentes. Ils permettront peut-être de déterminer si l'assuré a des risques d'avoir de nouveau ce genre de sinistres qui sont plus ou moins coûteux selon leur classification.
 
 ```{r}
+#on veut reprendre les lignes où ClaimAmout pouvait aussi être nul
+data(freMPL5)
+```
+
+```{r}
 glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial(link = logit))
 ```
 
@@ -132,10 +137,6 @@ Le ratio "residual deviance/ degrés de liberté" est de 0.57190... qui est inf�
 glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = quasibinomial(link = logit) )
 ```
 
-```{r}
-glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = quasibinomial(link = probit) )
-```
-
 Il y a ici encore plein de catégories socio-professionnelles à enlever ou regrouper.
 
 ```{r}
@@ -144,6 +145,11 @@ freMPL5 <- subset(freMPL5, freMPL5$SocioCateg != "CSP30" & freMPL5$SocioCateg !=
 perm <- sample(nrow(freMPL5),80/100*nrow(freMPL5))
 freMPL5.train <- freMPL5[perm,]
 freMPL5.test <- freMPL5[-perm,]
+```
+
+```{r}
+summary(freMPL5.train$ClaimInd)
+summary(freMPL5.test$ClaimInd)
 ```
 
 ```{r}
@@ -159,7 +165,7 @@ hist(prediction)
 
 ```{r}
 estimation <- bin.log$fitted.values
-estimation
+summary(estimation)
 hist(estimation)
 ```
 
@@ -240,9 +246,30 @@ mean(as.factor(prev_class[,2])==freMPL5.test$ClaimInd)
 ## Matrice de confusion
 
 ```{r}
-summary(freMPL5$SocioCateg)
+score <- ifelse(predict(bin.log,freMPL5.test,type="response") >.3, "sinistre","sans sinistre")
+confusion.mat = table(freMPL5.test$ClaimInd, score)  
+fauxneg = confusion.mat[2,1]
+fauxpos = confusion.mat[1,2]
+vraisneg = confusion.mat[1,1]
+vraispos = confusion.mat[2,2]
+(txerr = (fauxneg+fauxpos) / (fauxneg+fauxpos+vraisneg+vraispos))
+```
+
+taux d'erreur de 10% environ
+
+```{r}
+sensibilite <- vraispos / (vraispos + fauxneg)   
+precision <- vraispos / (vraispos + fauxpos) 
+specificite <- vraisneg / (vraisneg + fauxpos)
+(danger <- fauxneg / (fauxneg+vraisneg))
+```
+
+Ce modèle va considérer que 9,6% des non sinistrés aurait un sinistre
+
+```{r}
+confusion.mat
 ```
 
 ```{r}
-summary(freMPL5$ClaimInd)
+summary(freMPL5$ClaimAmount)
 ```

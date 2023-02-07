@@ -1,0 +1,56 @@
+---
+title: "cart"
+output: html_document
+date: "2023-02-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cart
+
+```{r}
+install.packages("rpart")
+install.packages("rpart.plot")
+```
+
+```{r}
+library(rpart)
+library(rpart.plot)
+library(sp)
+library(CASdatasets)
+```
+
+```{r}
+data(freMPL5)
+
+perm <- sample(nrow(freMPL5),80/100*nrow(freMPL5))
+freMPL5.train <- freMPL5[perm,]
+freMPL5.test <- freMPL5[-perm,]
+```
+
+```{r}
+freMPL5.train <- subset(freMPL5.train, freMPL5.train$ClaimAmount >= 0)
+freMPL5.train$HasKmLimit <- factor(freMPL5.train$HasKmLimit)
+freMPL5.train$RiskArea <- factor(freMPL5.train$RiskArea)
+freMPL5.train$ClaimInd <- factor(freMPL5.train$ClaimInd)
+
+
+
+#Pour faire une analyse de données, nous allons transformer toutes les variables
+#quantitatives en variables qualitatives de manière à avoir un nombre homogènes
+#d'assurés dans chaque classe.
+freMPL5.train$DrivAge_fact <- cut(freMPL5.train$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+
+freMPL5.train$BonusMalus <- cut(freMPL5.train$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
+```
+
+```{r}
+freMPL5.Tree <- rpart(ClaimAmount~MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+                      data=freMPL5.train,
+                      control=rpart.control(xval=10, minbucket = 1500, minsplit = 10,cp=0))
+rpart.plot(freMPL5.Tree)
+
+
+```

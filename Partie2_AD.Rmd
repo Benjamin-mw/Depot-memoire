@@ -1,0 +1,253 @@
+---
+title: "Analyse_de_données_partie_2"
+author: "Dudot Lucas - Lapaz Eudes - Moinard Benjamin - Nanoux Louis"
+date: "2023-01-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import de packages utiles
+
+```{r, message=FALSE}
+library(FactoMineR)
+library(factoextra)
+library(CASdatasets)
+library(tidyverse)
+library(MASS)
+library(knitr)
+library(ggplot2)
+library(cowplot)
+library(reshape2)
+library(dplyr)
+library(GGally)
+library(corrplot)
+library(carData) 
+library(car)
+library(questionr)
+library(multcomp)
+library(dplyr)
+library(leaps)
+library(TeachingDemos)
+library(FactoMineR)
+library(factoextra)
+library(ROCR)
+library(plotROC)
+```
+
+## Documentation et import du dataset
+
+```{r}
+#?CASdatasets #ouvre l'aide pour comprendre le dataset
+data(freMPL5)
+summary(freMPL5)
+```
+
+On remarque que certaines variables sont numériques au lieu d'être considérées comme des facteurs. Nous allons donc les changer :
+
+```{r}
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+freMPL5$OutUseNb <- as.numeric(freMPL5$OutUseNb)
+```
+
+# Quelques nouveaux plots de corrélation
+
+```{r}
+A = kde2d(freMPL5$DrivAge, freMPL5$BonusMalus)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$LicAge)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$Exposure)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$ClaimNbNonResp)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$DrivAge, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$BonusMalus, freMPL5$LicAge)
+filled.contour(A)
+A = kde2d(freMPL5$BonusMalus, freMPL5$Exposure)
+filled.contour(A)
+A = kde2d(freMPL5$BonusMalus, freMPL5$ClaimNbNonResp)
+filled.contour(A)
+A = kde2d(freMPL5$BonusMalus, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$BonusMalus, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$LicAge, freMPL5$Exposure)
+filled.contour(A)
+A = kde2d(freMPL5$LicAge, freMPL5$ClaimNbNonResp)
+filled.contour(A)
+A = kde2d(freMPL5$LicAge, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$LicAge, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$Exposure, freMPL5$ClaimNbNonResp)
+filled.contour(A)
+A = kde2d(freMPL5$Exposure, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$Exposure, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$ClaimNbNonResp, freMPL5$ClaimNbWindscreen)
+filled.contour(A)
+A = kde2d(freMPL5$ClaimNbNonResp, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+```{r}
+A = kde2d(freMPL5$ClaimNbWindscreen, freMPL5$RiskArea)
+filled.contour(A)
+```
+
+On remarque donc uniquement une réelle forte corrélation entre LicAge et DrivAge pour les variables continues.
+
+# ACP
+
+```{r}
+#freMPL veut dire French Motor Personal Line datasets
+#On utilisera le dataset 5 qui contient environ 26000 contrats de l'annee 2004
+
+x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19)]
+corrplot(round(cor(x),2),method="ellipse")
+
+#C'est une ACP sur les données quantitatives (on a ici considéré la zone
+#comme faisant partie des variables quantitatives car c'est "possibly ordered")
+PCA(x)
+```
+
+# ACM
+
+On va ici modifier les données pour faire une ACM.
+
+```{r}
+#On veut ici supprimer les lignes dont les montants réclamés sont négatifs.
+#En effet, elles donnent lieu à une régularisation et ne nous apporterons rien.
+data(freMPL5)
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+freMPL5$ClaimNbFireTheft <- factor(freMPL5$ClaimNbFireTheft)
+freMPL5$ClaimNbResp <- factor(freMPL5$ClaimNbResp)
+freMPL5$ClaimNbNonResp <- factor(freMPL5$ClaimNbNonResp)
+freMPL5$ClaimNbParking <- factor(freMPL5$ClaimNbParking)
+freMPL5$ClaimNbWindscreen <- factor(freMPL5$ClaimNbWindscreen)
+freMPL5$OutUseNb <- factor(freMPL5$OutUseNb)
+
+
+#Pour faire une analyse de données, nous allons transformer toutes les variables
+#quantitatives en variables qualitatives de manière à avoir un nombre homogènes
+#d'assurés dans chaque classe.
+freMPL5$Exposure <- cut(freMPL5$Exposure, quantile(freMPL5$Exposure, probs = seq(0,1,1/4)), include.lowest = TRUE)
+freMPL5$DrivAge <- cut(freMPL5$DrivAge, quantile(freMPL5$DrivAge, probs = seq(0,1,1/6)), include.lowest = TRUE)
+freMPL5$LicAge <- cut(freMPL5$LicAge, quantile(freMPL5$LicAge, probs = seq(0,1,1/6)), include.lowest = TRUE)
+freMPL5$BonusMalus <- cut(freMPL5$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
+freMPL5$IntervalCout <- cut(freMPL5$ClaimAmount, c(0,seq(1, 100000, 1000)), include.lowest = TRUE)
+```
+
+Voici la réalisation de l'ACM :
+
+```{r}
+fact <- freMPL5 %>% select_if(is.factor)
+
+res.mca = MCA(fact, ncp = 5, graph = TRUE, axes = c(1,2))
+summary(res.mca)
+fviz_mca_var(res.mca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, 
+             ggtheme = theme_minimal())
+
+fviz_mca_ind(res.mca, col.ind = "cos2", habillage = "IntervalCout",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, 
+             ggtheme = theme_minimal())
+
+res.mca_2 = MCA(fact, ncp = 5, graph = TRUE, axes = c(1,3))
+fviz_mca_var(res.mca_2, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, 
+             ggtheme = theme_minimal())
+
+res.mca_3 = MCA(fact, ncp = 5, graph = TRUE, axes = c(2,3))
+fviz_mca_var(res.mca_3, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, 
+             ggtheme = theme_minimal())
+
+fviz_mca_biplot(res.mca,  
+               select.ind = list(contrib = 60),
+               select.var = list(contrib = 15))
+```
+
+```{r}
+plot(res.mca,invisible=c("var","quali.sup","quanti.sup"),cex=0.7)
+plot(res.mca,invisible=c("ind","quali.sup","quanti.sup"),cex=0.8)
+plot(res.mca,invisible=c("quali.sup","quanti.sup"),cex=0.8)
+dimdesc(res.mca)
+plotellipses(res.mca,keepvar=1:4)
+plotellipses(res.mca,keepvar="Tea")
+```
+
+```{r}
+fviz_contrib(res.mca, choice = "var", axes = 1, top = 30)
+fviz_contrib(res.mca, choice = "var", axes = 2, top = 30)
+fviz_contrib(res.mca, choice = "var", axes = 3, top = 30)
+```
+
+```{r}
+fviz_mca_ind(res.mca, label="none", habillage = 1,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 2,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 3,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 4,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 5,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 6,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 7,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 8,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 9,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 10,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 11,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 12,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 13,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 14,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 15,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 16,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 17,
+       addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.mca, label="none", habillage = 18,
+       addEllipses=TRUE, ellipse.level=0.95)
+
+```
+
+# k-means

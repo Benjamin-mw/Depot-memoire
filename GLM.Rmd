@@ -40,7 +40,7 @@ library(plotROC)
 
 ```{r}
 data(freMPL5)
-#freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
@@ -54,7 +54,19 @@ Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que
 
 ```{r, error = TRUE}
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
-glm(ClaimAmount ~ 1, data = cout, offset = log(Exposure), family = Gamma())
+glm(ClaimAmount ~ 1, data = cout, offset = log(Exposure), family = Gamma(link = "log"))
+```
+
+```{r}
+summary(cout$ClaimAmoun)
+```
+
+```{r}
+alpha = mean(cout$ClaimAmount)^2/var(cout$ClaimAmount)
+beta = mean(cout$ClaimAmount)/var(cout$ClaimAmount)
+x <-rquasigamma(15000,shape = alpha,scale = beta)
+qqnorm(x)
+plot(cout$ClaimAmount)
 ```
 
 ### Test avec un modèle linéaire simple
@@ -67,6 +79,7 @@ lm(ClaimAmount ~ 1, data = cout, offset = Exposure)
 
 ```{r}
 lm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
+
 ```
 
 Ce modèle est sûrement très mauvais mais il permet de voir que certaines choses fonctionnent.
@@ -87,6 +100,16 @@ glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNon
 
 ```{r, error = TRUE}
 glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma(), start = rep(1000, 49))
+```
+
+Vrai modèle
+
+```{r}
+gamma.id <- glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma(link = "identity"))
+summary(gamma.id)
+```
+
+```{}
 ```
 
 # GLM pour la variable fréquence
@@ -268,8 +291,4 @@ Ce modèle va considérer que 9,6% des non sinistrés aurait un sinistre
 
 ```{r}
 confusion.mat
-```
-
-```{r}
-summary(freMPL5$ClaimAmount)
 ```

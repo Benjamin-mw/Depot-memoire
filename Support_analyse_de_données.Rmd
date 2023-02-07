@@ -9,6 +9,8 @@ date: "2023-01-19"
 ## Import de packages utiles
 
 ```{r, message=FALSE}
+library(tables)
+library(ggExtra)
 library(FactoMineR)
 library(factoextra)
 library(CASdatasets)
@@ -32,6 +34,7 @@ library(FactoMineR)
 library(factoextra)
 library(ROCR)
 library(plotROC)
+library(graphics)
 ```
 
 ## Documentation et import du dataset
@@ -42,7 +45,7 @@ data(freMPL5)
 summary(freMPL5)
 #Cette nouvelle covariable sera présentée plus tard
 freMPL5$ObtLic <- ceiling(freMPL5$DrivAge - freMPL5$LicAge/12)
-x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19,20,21)]
+x <- freMPL5[, c(1,2,9,11,12,13,14,15,16,17,18,19,21)]
 corrplot(round(cor(x),2),method="ellipse")
 ```
 
@@ -80,6 +83,12 @@ Nous supprimons alors les lignes en questions :
 freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
 ```
 
+### Notes
+
+**Revoir la partie 2.4.2 de Wuthrish pour bien analyser proprement les variables qui ont un impact linéaire de celles qui n'ont pas un tel impact. Cela justifiera alors de rendre ces variables catégorielles ou non. Cela peut être fait avec les log-fréquences marginales des covariables continues.**
+
+Pour le document LateX, on pourra présenter les données et surtout, le cadre du GLM comme le fait Wuthrish page 47 (Partie 2.4.5) du polycopié Wuthrish et Buser.
+
 ### Coefficient de bonus-malus
 
 Pour le coefficient de bonus-malus, il commence à 1 et peut descendre jusqu'à 0.5 si le conducteur n'a pas d'accidents responsables ou semi-responsables. A l'inverse, en cas d'accidents responsables, le coefficient augmente et peut atteindre jusqu'à 3.5. Dans le jeu de données, toutes les valeurs sont multipliées par 100 ce qui ne posera aucun problème dans le cas de nos modèles. Cependant, si on veut voir l'impact linéaire du coefficient de bonus-malus, il pourrait être intéressant de revoir son échelle en retranchant 100 par exemple à la variable. C'est pour cela qu'il y a une corrélation assez importante entre BonusMalus et ClaimNbResp.
@@ -102,6 +111,7 @@ fact_BonusMalus <- cut(freMPL5$BonusMalus, c(50,seq(51,120,10),350), include.low
 tab <- table(fact_BonusMalus, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
+cdplot(x = freMPL5$BonusMalus, y = factor(freMPL5$ClaimInd))
 ```
 
 C'est surtout le boxplot qui permet de conclure à un lien car ceux qui ont à réclamer de l'argent ont en moyenne un Bonus plus faible que les autres.
@@ -148,6 +158,7 @@ ggplot(freMPL5, aes(x = DrivAge)) +
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+cdplot(x = freMPL5$DrivAge, y = factor(freMPL5$ClaimInd))
 ```
 
 ```{r}
@@ -205,6 +216,8 @@ ggplot(freMPL5, aes(x = LicAge)) +
                 position = "identity", bins = 30, alpha = 0.4) +
   scale_color_manual(values = c("#00AFBB", "#E7B800")) +
   scale_fill_manual(values = c("#00AFBB", "#E7B800"))
+
+cdplot(x = freMPL5$LicAge, y = factor(freMPL5$ClaimInd))
 ```
 
 ```{r}
@@ -336,6 +349,10 @@ Nous étudierons cela plus en profondeur dans l'étude d'une éventuelle indépe
 ### Statut marital
 
 ### CSP
+
+```{r}
+
+```
 
 Cette catégorie devra être regroupée car elle contient trop de modalités de facteur.
 
@@ -469,6 +486,8 @@ ggplot(freMPL5, aes(x = ClaimNbResp)) +
 tab <- table(freMPL5$ClaimNbResp, freMPL5$ClaimInd)
 cols <- rainbow(nlevels(freMPL5$ClaimInd))
 plot(tab,col = cols)
+
+cdplot(x = freMPL5$ClaimNbResp, y = factor(freMPL5$ClaimInd))
 ```
 
 Il y a ici aussi une petite corrélation. Avec les graphiques, on remarque qu'il y a plus d'indicateurs de réclamation positifs lorsque les accidents sont responsables.
@@ -490,6 +509,8 @@ La corrélation est surtout observable entre cette variable et la variable de co
 summary(freMPL5$ClaimNbNonResp)
 quantile(freMPL5$ClaimNbNonResp, seq(0,1,1/10))
 hist(freMPL5$ClaimNbNonResp)
+
+cdplot(x = freMPL5$ClaimNbNonResp, y = factor(freMPL5$ClaimInd))
 ```
 
 L'évènement d'avoir au moins un accident non responsable est assez rare (environ 20%).

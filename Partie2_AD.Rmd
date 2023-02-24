@@ -250,4 +250,47 @@ fviz_mca_ind(res.mca, label="none", habillage = 18,
 
 ```
 
+```{r}
+fviz_mca_ind(res.mca, label="none", habillage = 5,
+       addEllipses=TRUE, ellipse.level=0.95)
+```
+
 # k-means
+
+séparer variables quantitives et qualitatives
+
+```{r}
+ind.quant <- sapply(freMPL5, is.numeric) 
+
+freMPL5.quant <- freMPL5[ ,ind.quant]
+freMPL5.qual <- freMPL5[ ,!ind.quant]
+```
+
+```{r}
+df <- USArrests
+df <- na.omit(df)
+df <- scale(df)
+head(df)
+summary(df)
+
+```
+
+```{r}
+k2 <- kmeans(freMPL5.quant, centers = 2, nstart = 25)
+str(k2)
+fviz_cluster(k2, data = freMPL5.quant)
+```
+
+```{r}
+for (i in 1:5){
+  ki <- kmeans(freMPL5.quant, centers = i, nstart = 25)
+  fviz_cluster(ki, data = freMPL5.quant)
+}
+
+```
+
+```{r}
+library(cluster)
+gap_stat <- clusGap(freMPL5.quant, FUN = kmeans, nstart = 25,
+                    K.max = 5, B = 50)
+```

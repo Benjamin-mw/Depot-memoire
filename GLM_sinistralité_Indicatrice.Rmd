@@ -129,7 +129,7 @@ outlierTest(modBoth)
 
 Si p-Bonferroni \>0,05, pas un outlier.
 
-# Partie 3 : Prédiction
+# Prédiction
 
 ## Evaluation du modèle sur les données tests
 

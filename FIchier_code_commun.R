@@ -10,6 +10,9 @@ library(graphics)
 data(freMPL5)
 summary(freMPL5)
 
+#Création d'une variable de sinistralité
+freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
+
 #Ajustement type des variables
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
 freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
@@ -32,4 +35,3 @@ freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
 freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
 freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
 freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
-

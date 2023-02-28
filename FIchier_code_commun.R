@@ -15,7 +15,6 @@ freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
 
 #Ajustement type des variables
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
-freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 freMPL5$OutUseNb <- as.numeric(freMPL5$OutUseNb)
 

@@ -219,3 +219,61 @@ specificite <- vraisneg / (vraisneg + fauxpos)
 
 confusion.mat
 ```
+
+# Test avec une variable de Poisson
+
+```{r}
+summary(freMPL5$Sinistres)
+bornes = seq(0,501,1)
+hist(freMPL5$Sinistres)
+hist(freMPL5$Sinistres, breaks=bornes, xlim=c(0,10))
+hist(freMPL5$Sinistres, breaks=bornes, xlim=c(0,10), ylim = c(0,2000))
+```
+
+```{r warning= FALSE}
+mod0_2 <- glm(Sinistres ~ 1, data = train, family = poisson(link = "log"))
+summary(mod0_2)
+```
+
+```{r warning= FALSE}
+modFull_2 <- glm(Sinistres ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "log"))
+summary(modFull_2)
+```
+
+```{r warning = FALSE}
+modBoth_2 = step(modFull_2, mod0_2, trace=F, direction = c('both'))
+summary(modBoth_2)
+```
+
+L'AIC est ici infini...
+
+Cela ne semble donc pas être un très bon modèle...
+
+```{r}
+RMSE_2_train <- sqrt(mean(modBoth_2$residuals^2))
+RMSE_2_train
+```
+
+# Test avec une quasi-Poisson
+
+```{r warning= FALSE}
+mod0_3 <- glm(Sinistres ~ 1, data = train, family = quasipoisson(link = "log"))
+summary(mod0_3)
+```
+
+```{r warning= FALSE}
+modFull_3 <- glm(Sinistres ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = quasipoisson(link = "log"))
+summary(modFull_3)
+```
+
+```{r warning = FALSE}
+modBoth_3 = step(modFull_3, mod0_3, trace=F, direction = c('both'))
+summary(modBoth_3)
+```
+
+Ici, l'AIC n'étant pas défini, on ne peut pas utiliser une méthode Both, Backward ou Forward classique avec ce critère.
+
+```{r}
+RMSE_3_train <- sqrt(mean(modFull_3$residuals^2))
+RMSE_3_train
+```

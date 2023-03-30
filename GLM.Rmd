@@ -110,7 +110,7 @@ test <- cout[-perm,]
 ```
 
 ```{r}
-gamma.id <- glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, offset = log(Exposure), family = Gamma(link = "identity"))
+gamma.id <- glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "identity"))
 summary(gamma.id)
 ```
 
@@ -124,13 +124,7 @@ prediction <- predict.glm(gamma.id, newdata = test, type = "response")
 hist(prediction)
 ```
 
-```{r}
-summary(cout$SocioCateg)
-```
-
-```{r}
-
-```
+### 
 
 # GLM pour la variable fréquence
 

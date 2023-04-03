@@ -264,6 +264,7 @@ ind.quant <- sapply(freMPL5, is.numeric)
 
 freMPL5.quant <- freMPL5[ ,ind.quant]
 freMPL5.qual <- freMPL5[ ,!ind.quant]
+
 ```
 
 ```{r}
@@ -276,7 +277,7 @@ summary(df)
 ```
 
 ```{r}
-k2 <- kmeans(freMPL5.quant, centers = 2, nstart = 25)
+k2 <- kmeans(freMPL5.quant, centers = 5, nstart = 25)
 str(k2)
 fviz_cluster(k2, data = freMPL5.quant)
 ```
@@ -293,4 +294,12 @@ for (i in 1:5){
 library(cluster)
 gap_stat <- clusGap(freMPL5.quant, FUN = kmeans, nstart = 25,
                     K.max = 5, B = 50)
+```
+
+```{r}
+freMPL5.quant <- subset(freMPL5.quant, freMPL5$ClaimAmount > 0)
+
+k2 <- kmeans(freMPL5.quant, centers = 5, nstart = 25)
+str(k2)
+fviz_cluster(k2, data = freMPL5.quant)
 ```

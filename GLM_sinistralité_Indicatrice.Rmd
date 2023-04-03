@@ -95,12 +95,12 @@ $$
 avec $SCR(m)=||P_mY-Y||^2$ et $n$ le nombre d'observations. On choisit un modèle $[m]$ qui minimise l'$AIC$. Afin de déterminer le "meilleur" modèle pour notre étude, nous utiliserons la méthode "both". Cette dernière part de l'intercept et ajoute/enlève les variables une à une tout en comparant selon le critère $AIC$
 
 ```{r, message = FALSE, warning = FALSE}
-mod0 <- glm(ClaimInd ~ 1, data = train, offset = Exposure, family = binomial(link = logit))
+mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = logit))
 summary(mod0)
 ```
 
 ```{r}
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, offset = Exposure, family = binomial(link = logit))
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
 summary(modFull)
 ```
 
@@ -186,7 +186,7 @@ Les AUC obtenus sont supérieurs à 0,92. On a un très bon critère (très proc
 ```{r}
 estimation <- modBoth$fitted.values
 hist(estimation)
-score <- ifelse(predict(modBoth,train,type="response") >.2, 1, 0)
+score <- ifelse(predict(modBoth,train,type="response") >.1, 1, 0)
 confusion.mat = table(train$ClaimInd, score)  
 fauxneg = confusion.mat[2,1]
 fauxpos = confusion.mat[1,2]
@@ -264,11 +264,6 @@ summary(mod0_3)
 ```{r warning= FALSE}
 modFull_3 <- glm(Sinistres ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = quasipoisson(link = "log"))
 summary(modFull_3)
-```
-
-```{r warning = FALSE}
-modBoth_3 = step(modFull_3, mod0_3, trace=F, direction = c('both'))
-summary(modBoth_3)
 ```
 
 Ici, l'AIC n'étant pas défini, on ne peut pas utiliser une méthode Both, Backward ou Forward classique avec ce critère.

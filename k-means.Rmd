@@ -50,9 +50,18 @@ La suite de notre étude ne portera donc que sur les classes :CSP1, 42, 46, 48, 
 
 ```
 
+Importer chez Eudes
+
 ```{r}
 #On importe la base de données qu'avec les bonnes CSP après sélection sur Excel
 setwd("C:/Users/enceu/OneDrive/Bureau/Mémoire")
+data=read.csv("databrute.csv",header=TRUE,sep=";",fill=F)
+```
+
+Importer chez Lucas
+
+```{r}
+setwd("C:/Users/60580/OneDrive/Documents/projet R/Depot-memoire")
 data=read.csv("databrute.csv",header=TRUE,sep=";",fill=F)
 ```
 
@@ -92,3 +101,45 @@ Ce premier clustering nous permet de constituer 2 clusters parmi ces 8 classes :
 -   Cluster 1 : CSP1, 42, 46, 48 et 66
 
 -   Cluster 2 : CSP 50, 55 et 60
+
+```{r}
+data1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
+df=scale(data1)
+#Etude du nombre de clusterings que l'on va considérer grâce à différents critères
+
+fviz_nbclust(data1,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),k.max=7)
+
+km.res <- kmeans(df, 3, nstart = 10)
+km.res
+
+
+fviz_cluster(km.res, data = df, centroids = 2, repel = TRUE, ellipse.type = "norm")
+```
+
+```{r}
+data1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
+df=scale(data1)
+#Etude du nombre de clusterings que l'on va considérer grâce à différents critères
+
+fviz_nbclust(data1,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),k.max=7)
+
+km.res <- kmeans(df, 4, nstart = 10)
+km.res
+
+
+fviz_cluster(km.res, data = df, centroids = 2, repel = TRUE, ellipse.type = "norm")
+```
+
+```{r}
+data1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
+df=scale(data1)
+#Etude du nombre de clusterings que l'on va considérer grâce à différents critères
+
+fviz_nbclust(data1,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),k.max=7)
+
+km.res <- kmeans(df, 5, nstart = 10)
+km.res
+
+
+fviz_cluster(km.res, data = df, centroids = 2, repel = TRUE, ellipse.type = "norm")
+```

@@ -22,6 +22,7 @@ summary(freMPL5)
 
 #Création d'une variable de sinistralité
 freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
+freMPL5$Sinistres2 = round(freMPL5$Sinistres)
 
 #Ajustement type des variables
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
@@ -231,12 +232,12 @@ hist(freMPL5$Sinistres, breaks=bornes, xlim=c(0,10), ylim = c(0,2000))
 ```
 
 ```{r warning= FALSE}
-mod0_2 <- glm(Sinistres ~ 1, data = train, family = poisson(link = "log"))
+mod0_2 <- glm(Sinistres2 ~ 1, data = train, family = poisson(link = "log"))
 summary(mod0_2)
 ```
 
 ```{r warning= FALSE}
-modFull_2 <- glm(Sinistres ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "log"))
+modFull_2 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "log"))
 summary(modFull_2)
 ```
 
@@ -250,6 +251,18 @@ L'AIC est ici infini...
 Cela ne semble donc pas être un très bon modèle...
 
 ```{r}
+lmb = mean(freMPL5$Sinistres2)
+qqplot (freMPL5$Sinistres2, qpois(ppoints(freMPL5$Sinistres2), lambda = lmb),
+        	xlab ="Sinistralité observées",
+        main ="Graphique des quantiles pour la sinistralité.", xlim = c(0,50))
+abline (a=0,b=1, col ="red")
+```
+
+Remarque : Nous avons tronquer xlim afin d'avoir une interprétation possible et visuelle. Sinon, il y avait quelques éléments qui allait bien trop loin (valeurs trop extrèmes).
+
+Avec ce graphique des qqplot. On remarque bien que la loi de Poisson n'est pas adaptée à cette modélisation. En effet, il y a quelques observations qui sont très élevés, qui faussent la moyenne (appelée lmb ici qui est aussi le paramètre de la loi). Alors nous allons tenter de modéliser en enlevant dans un premier temps les données qui dépassent un certain seuil.
+
+```{r}
 RMSE_2_train <- sqrt(mean(modBoth_2$residuals^2))
 RMSE_2_train
 ```
@@ -257,12 +270,12 @@ RMSE_2_train
 # Test avec une quasi-Poisson
 
 ```{r warning= FALSE}
-mod0_3 <- glm(Sinistres ~ 1, data = train, family = quasipoisson(link = "log"))
+mod0_3 <- glm(Sinistres2 ~ 1, data = train, family = quasipoisson(link = "log"))
 summary(mod0_3)
 ```
 
 ```{r warning= FALSE}
-modFull_3 <- glm(Sinistres ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = quasipoisson(link = "log"))
+modFull_3 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = quasipoisson(link = "log"))
 summary(modFull_3)
 ```
 
@@ -271,4 +284,160 @@ Ici, l'AIC n'étant pas défini, on ne peut pas utiliser une méthode Both, Back
 ```{r}
 RMSE_3_train <- sqrt(mean(modFull_3$residuals^2))
 RMSE_3_train
+```
+
+# GLM sur les valeurs basses de Sinistres
+
+Comme vu sur la fin de la partie Test avec une loi de Poisson, nous allons considérer dans un premier temps les observations qui possèdent un faible nombre de sinistres.
+
+```{r}
+quantile(freMPL5$Sinistres, c(0, 0.8, 0.9, seq(0.9,1,0.0005)))
+```
+
+Ces quantiles pourront éventuellement nous aider à comprendre le pourcentage de variables que nous ignorons dans un premier temps.
+
+#### \<= 3
+
+```{r}
+inf3 = freMPL5[freMPL5$Sinistres <= 3,]
+```
+
+```{r}
+lmb3 = mean(inf3$Sinistres2)
+qqplot (inf3$Sinistres2, qpois(ppoints(inf3$Sinistres2), lambda = lmb3),
+        	xlab ="Sinistralité observées",
+        main ="Graphique des quantiles pour la sinistralité.")
+abline (a=0,b=1, col ="red")
+```
+
+Ce graphe est déjà plus normal pour le qqplot. On peut aussi remarquer que :
+
+$$
+ \lambda_3 \approx 0,1187 << \lambda_{général} \approx 0,2667
+$$
+
+On capte dejà mieux les effets.
+
+```{r}
+echantillon3 <- sample(c(TRUE, FALSE), nrow(inf3), replace=TRUE, prob=c(0.8,0.2))
+train3  <- inf3[echantillon, ]
+test3   <- inf3[!echantillon, ]
+```
+
+```{r}
+hist(inf3$Sinistres)
+hist(inf3$Sinistres, ylim=c(0,1000))
+```
+
+Avec ces courbes, on remarque qu'on risque d'être en difficulté pour capter des valeurs précises entre 1 et 3 car le poids mis en 0 est très fort.
+
+```{r}
+mod0_3 <- glm(Sinistres2 ~ 1, data = train3, family = poisson(link = "log"))
+summary(mod0_2)
+```
+
+```{r}
+modFull_3 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train3, family = poisson(link = "log"))
+summary(modFull_3)
+```
+
+```{r}
+modQuasiPoi_3 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train3, family = quasipoisson(link = "log"))
+summary(modQuasiPoi_3)
+```
+
+L'AIC n'est pas défini pour les quasi-Poisson sur R. Cependant, on remaque qu'on semble obtenir les mêmes résultats que pour la loi de Poisson normale. Y-a-t'il un problème dans le code ?
+
+##### Prédiction
+
+```{r}
+estimation3 <- modFull_3$fitted.values
+hist(estimation3)
+```
+
+##### RMSE
+
+```{r}
+RMSE_train3 <- sqrt(mean(modFull_3$residuals^2))
+RMSE_train3
+```
+
+##### Table de confusion
+
+```{r}
+estimation3 <- modFull_3$fitted.values
+hist(estimation3)
+score <- round(predict(modFull_3,train3,type="response"))
+confusion.mat = table(train3$Sinistres2, score)  
+
+confusion.mat
+```
+
+```{r}
+estimation3 <- modFull_3$fitted.values
+hist(estimation3)
+score <- round(predict(modFull_3,test3,type="response"))
+confusion.mat = table(test3$Sinistres2, score)
+
+confusion.mat
+```
+
+On obtient encore des résultats qui ne sont pas particulièrement satisfaisants.
+
+#### \<= 4
+
+```{r}
+inf4 = freMPL5[freMPL5$Sinistres <= 4,]
+```
+
+```{r}
+lmb4 = mean(inf4$Sinistres2)
+qqplot (inf4$Sinistres2, qpois(ppoints(inf4$Sinistres2), lambda = lmb4),
+        	xlab ="Sinistralité observées",
+        main ="Graphique des quantiles pour la sinistralité.")
+abline (a=0,b=1, col ="red")
+```
+
+Ce graphe semble moins bien que pour le découpage précédent (\<=3). On peut aussi remarquer que :
+
+$$
+ \lambda_4 \approx 0.1433 << \lambda_{général} \approx 0,2667
+$$
+
+```{r}
+echantillon4 <- sample(c(TRUE, FALSE), nrow(inf4), replace=TRUE, prob=c(0.8,0.2))
+train4  <- inf4[echantillon, ]
+test4   <- inf4[!echantillon, ]
+```
+
+```{r}
+hist(inf4$Sinistres)
+hist(inf4$Sinistres, ylim=c(0,1000))
+```
+
+On peut dire à peu près les mêmes choses que pour la partie \<=3.
+
+```{r}
+mod0_4 <- glm(Sinistres2 ~ 1, data = train4, family = poisson(link = "log"))
+summary(mod0_2)
+```
+
+```{r}
+modFull_4 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train4, family = poisson(link = "log"))
+summary(modFull_4)
+```
+
+```{r}
+modQuasiPoi_4 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train4, family = quasipoisson(link = "log"))
+summary(modQuasiPoi_4)
+```
+
+L'AIC n'est pas défini pour les quasi-Poisson sur R. Cependant, on remaque que les résidus sont plus importants sur la quasi-Poisson que sur la Poisson.
+
+Nous perdons ici en précision et performance sur cette modélisation. Nous n'allons même pas tenter de regarder ce que cela donne sur l'échantillon de test.
+
+#### Seulement avec les sinistres \>1
+
+```{r}
+
 ```

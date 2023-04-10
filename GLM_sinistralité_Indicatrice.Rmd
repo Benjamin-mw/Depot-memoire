@@ -246,8 +246,6 @@ modBoth_2 = step(modFull_2, mod0_2, trace=F, direction = c('both'))
 summary(modBoth_2)
 ```
 
-L'AIC est ici infini...
-
 Cela ne semble donc pas être un très bon modèle...
 
 ```{r}

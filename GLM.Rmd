@@ -86,12 +86,12 @@ Nous allons faire un système à double pénalisation, "BonusMalus" sera pris en
 
 ## Première estimation de la loi de notre variable "ClaimAmount"
 
-```{r}
-summary(freMPL5$ClaimAmount)
-```
-
 ```{r, error = TRUE}
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
+```
+
+```{r}
+summary(cout$ClaimAmount)
 ```
 
 ```{r}
@@ -117,32 +117,68 @@ La loi normale ne semble pas être très adaptée à notre modèle
 ## Séparation en échantillon apprentissage et échantillon test
 
 ```{r}
-#freMPL5 <- subset(freMPL5, freMPL5$SocioCateg != "CSP30" & freMPL5$SocioCateg !="CSP45" & freMPL5$SocioCateg !="CSP63" & freMPL5$SocioCateg !="CSP61")
-
 perm <- sample(nrow(cout),80/100*nrow(cout))
 train <- cout[perm,]
 test <- cout[-perm,]
 
 ```
 
-## GLM pour la loi gamma
+## Loi gamma
 
 ```{r}
-
+train <- subset(train, train$ClaimAmount <60000)
+summary(train$ClaimAmount)
 ```
 
 ```{r}
-gamma.id <- glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "identity"))
+gamma.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "inverse"))
+summary(gamma.inv)
+```
+
+Il n'affiche pas de GLM. Essayons d'enlever les valeurs extrêmes
+
+```{r}
+gamma.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "log"))
+
+gamma.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "identity"))
+
+```
+
+Apparition d'un message d'erreur :
+
+"glm.fit : l'algorithme n'a pas convergé"
+
+```{r}
+gamma.log$converged
+```
+
+```{r}
+summary(gamma.log)
 summary(gamma.id)
 ```
 
+Il y a ainsi peu de différence entre les critères d'AIC entre les différentes fonctions de lien
+
+### Both, forward and backward
+
 ```{r}
-estimation <- gamma.id$fitted.values
+mod0 <- glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "log"))
+```
+
+```{r}
+modBoth = step(gamma.log, mod0, trace=F,direction = c('both'))
+summary(modBoth)
+```
+
+### Prediction
+
+```{r}
+estimation <- gamma.log$fitted.values
 hist(estimation)
 ```
 
 ```{r}
-prediction <- predict.glm(gamma.id, newdata = test, type = "response")
+prediction <- predict.glm(gamma.log, newdata = test, type = "response")
 hist(prediction)
 ```
 
@@ -346,9 +382,9 @@ confusion.mat
 ```{r}
 fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
 
-fit <- train(ClaimInd ~ SocioCateg + VehUsage + HasKmLimit + 
+fit <- train(ClaimInd ~ MariStat + Categ + VehUsage + HasKmLimit + 
     ClaimNbResp + ClaimNbNonResp + ClaimNbParking + ClaimNbFireTheft + 
-    ClaimNbWindscreen + RiskArea + BonusMalus + DrivAge_fact,
+    ClaimNbWindscreen + OutUseNb + RiskArea + BonusMalus + DrivAge_fact,
     data = freMPL5.train, method = "glm", 
     family = "binomial", trControl = fit.control)
 ```

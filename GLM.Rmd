@@ -32,6 +32,7 @@ library(TeachingDemos)
 library(factoextra)
 library(ROCR)
 library(plotROC)
+library(caret)
 ```
 
 # GLM pour la variable coût
@@ -157,6 +158,11 @@ Les variables ClaimNbResp, ClaimNbNonResp, ClaimNbParking, ClaimNbFireTheft, Cla
 ```{r}
 #on veut reprendre les lignes où ClaimAmout pouvait aussi être nul
 data(freMPL5)
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
 ```
 
 ```{r}
@@ -233,7 +239,7 @@ summary(modBoth)
 summary(modBoth)
 ```
 
-## RMSE
+## RMSE (root mean squared error)
 
 ```{r}
 RMSE_train <- sqrt(mean(modBoth$residuals^2))
@@ -245,6 +251,13 @@ bin.log2 <- glm(ClaimInd ~ SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNon
 
 RMSE_test <- sqrt(mean(bin.log2$residuals^2))
 RMSE_test
+```
+
+## MAE (mean absolute error)
+
+```{r}
+MAE_train <- mean(abs(modBoth$residuals))
+MAE_train
 ```
 
 ## AUC, Courbe ROC
@@ -305,4 +318,16 @@ Ce modèle va considérer que 9,6% des non sinistrés aurait un sinistre
 
 ```{r}
 confusion.mat
+```
+
+## Cross Validation
+
+```{r}
+fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+
+fit <- train(ClaimInd ~ SocioCateg + VehUsage + HasKmLimit + 
+    ClaimNbResp + ClaimNbNonResp + ClaimNbParking + ClaimNbFireTheft + 
+    ClaimNbWindscreen + RiskArea + BonusMalus + DrivAge_fact,
+    data = freMPL5.train, method = "glm", 
+    family = "binomial", trControl = fit.control)
 ```

@@ -100,12 +100,12 @@ $$
 avec $SCR(m)=||P_mY-Y||^2$ et $n$ le nombre d'observations. On choisit un modèle $[m]$ qui minimise l'$AIC$. Afin de déterminer le "meilleur" modèle pour notre étude, nous utiliserons la méthode "both". Cette dernière part de l'intercept et ajoute/enlève les variables une à une tout en comparant selon le critère $AIC$
 
 ```{r, message = FALSE, warning = FALSE}
-mod0 <- glm(ClaimInd ~ 1, data = train, offset = Exposure, family = binomial(link = log))
+mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = log))
 summary(mod0)
 ```
 
 ```{r}
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, offset = Exposure, family = binomial(link = log))
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = log))
 summary(modFull)
 ```
 
@@ -204,6 +204,10 @@ precision <- vraispos / (vraispos + fauxpos)
 specificite <- vraisneg / (vraisneg + fauxpos)
 
 confusion.mat
+```
+
+```{r}
+
 ```
 
 #### Sur le jeu de données test

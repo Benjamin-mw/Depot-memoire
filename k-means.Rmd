@@ -54,7 +54,10 @@ Importer chez Eudes
 
 ```{r}
 #On importe la base de données qu'avec les bonnes CSP après sélection sur Excel
-setwd("C:/Users/enceu/OneDrive/Bureau/Mémoire")
+data(freMPL5)
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+write.csv(freMPL5, file="databrute_1.csv", row.names = FALSE)
+setwd("C:/Users/enceu/OneDrive/Bureau/Git_hub_Mémoire/Depot-memoire")
 data=read.csv("databrute.csv",header=TRUE,sep=";",fill=F)
 ```
 
@@ -83,8 +86,8 @@ Dans la suite de cette section, on va regrouper, si possible, les 8 CSP restante
 
 ```{r}
 #On centre chaque colonne de notre dataframe data afin de pouvoir procéder aux k-means 
-data1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
-df=scale(data1)
+data_1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
+df=scale(data_1)
 #Etude du nombre de clusterings que l'on va considérer grâce à différents critères
 
 fviz_nbclust(data1,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),k.max=7)
@@ -102,6 +105,7 @@ Ce premier clustering nous permet de constituer 2 clusters parmi ces 8 classes :
 
 -   Cluster 2 : CSP 50, 55 et 60
 
+<<<<<<< HEAD
 ```{r}
 data1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
 df=scale(data1)
@@ -142,4 +146,66 @@ km.res
 
 
 fviz_cluster(km.res, data = df, centroids = 2, repel = TRUE, ellipse.type = "norm")
+=======
+## K-means (avec l'ensemble des données)
+
+```{r}
+data_2=read.csv("data_3.csv",header=TRUE,sep=";",fill=F)
+
+#On crée une nouvelle colonnes pour pouvoir mettre en nom de colonnes les CSP bien qu'il y ait redondance (R veut que chaque nom de ligne soit différent)
+data_2$col_1 <- paste(rownames(data_2), data_2$SocioCateg, sep = "_")
+rownames(data_2)=data_2$col_1
+
+#On donne une couleur à chaque CSP pour mieux les visualiser au final 
+#data_2$couleur <- ifelse("CSP1" %in% row.names(my_data) , "red",ifelse("CSP42" %in% row.names(my_data),"blue",ifelse( "CSP46" %in% row.names(my_data),"green",ifelse("CSP48" %in% row.names(my_data),"yellow",ifelse("CSP50" %in% row.names(my_data),"black",ifelse("CSP55" %in% row.names(my_data),"orange",ifelse("CSP60" %in% row.names(my_data),"pink","purple")))))))
+
+#On élimine les colonnes SocioCateg et col_1 qui n'ont plus d'utilité
+data_2=data_2[, -c(1,11)]
+
+#On prend n lignes de notre data set de manière aléatoire car il n'est pas possible de travailler avec les 25000 lignes (manque de puissance)
+
+n=2000
+data_2_aleatoire=sample_n(data_2, n)
+```
+
+### Clustering 
+
+```{r}
+#On centre chaque colonne de notre dataframe data afin de pouvoir procéder aux k-means 
+
+df_1=scale(data_2_aleatoire)
+#Etude du nombre de clusterings que l'on va considérer grâce à différents critères
+
+fviz_nbclust(data_2_aleatoire,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),k.max=7)
+
+km.res <- kmeans(df_1, 2, nstart = 10)
+km.res
+
+
+fviz_cluster(km.res, data = df_1, centroids = 2, repel = TRUE, ellipse.type = "norm")
+```
+
+```{r}
+# Chargement des packages
+library(ggpubr)
+library(cluster)
+
+# Génération des données
+set.seed(123)
+data <- matrix(rnorm(200, mean = 5, sd = 2), ncol = 4)
+
+# Calcul des clusters k-means
+km <- kmeans(data, centers = 3)
+
+# Conversion des données en data frame
+plot.data <- data.frame(data)
+plot.data$cluster <- as.factor(km$cluster)
+
+# Affichage du graphique d'ellipse k-means
+ggscatter(plot.data, x = "V1", y = "V2", ellipse.type = "convex", 
+          fill = plot.data$cluster, palette = c("#00AFBB", "#E7B800", "#FC4E07"), 
+          shape = 21, size = 3, legend.title = "Cluster")
+
+
+>>>>>>> fb843297622a8397faf861261bafbd879c988abd
 ```

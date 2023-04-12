@@ -3,7 +3,8 @@ title: "Untitled"
 output: html_document
 date: "2023-04-12"
 ---
-
+#Cette version prend en compte le modèle entier ClaimAmount~ . sans modifications, on remarque que la courbe du taux d'erreur relative en fonction de cp est plus 
+#exploitable et nous donne de plus une valeur de cp optimale pour une profondeur d'arbre interessante.
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -25,7 +26,7 @@ test.data <- freMPL5[-train.index,]
 ```
 
 ```{r}
-
+#construction de l'arbre maximal avec des valeurs de controles prises arbitrairement.
 freMPL5.Tree <- rpart(ClaimAmount~ ., data=train.data, method="anova" , control=rpart.control(xval = 10, minbucket = 50,cp=0))
 rpart.plot(freMPL5.Tree)
 

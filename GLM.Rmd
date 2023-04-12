@@ -41,17 +41,54 @@ library(caret)
 
 ```{r}
 data(freMPL5)
+```
+
+Notre variable "ClaimAmount" est une variable quantitative et représente le prix total des accidents survenus au cours de l'année pour chacun des assurés.
+
+Cette variable prend ainsi une valeur nulle lorque la variable "ClaimInd" a la valeur nulle, c'est-à-dire si aucun accident n'est survenu et prend des valeurs positives dans le cas contraire.
+
+```{r}
+summary(freMPL5$ClaimAmount)
+```
+
+Seulement, nos données présentent des cas particuliés et isolés dans laquelle la variable ClaimAmount prend des valeurs négatives. Nous élimineront ces données dans la suite de notre étude de la variable et nous nous intéresserons aux valeurs que celle-ci peut prendre lorsqu'un incident a lieu.
+
+Nous utiliserons également le même découpage réalisé lors de l'étude de la variable fréquence.
+
+```{r}
+#enlever les valeurs négatives
 freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+
+#passer en variables catégorielles
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 
+#segmentation des tranches d'âge
 freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+
+#Découpage CSP
+freMPL5$Categ = 0
+freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 1
+freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 2
+freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 3
+freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 4
+freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
+freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
+freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
+freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
+freMPL5$Categ = factor(freMPL5$Categ)
 ```
 
 Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que plus tard dans la tarification ?
 
-## Premiers modèles
+Nous allons faire un système à double pénalisation, "BonusMalus" sera pris en compte dans nos GLMs et notre grille de tarification
+
+## Première estimation de la loi de notre variable "ClaimAmount"
+
+```{r}
+summary(freMPL5$ClaimAmount)
+```
 
 ```{r, error = TRUE}
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
@@ -62,7 +99,7 @@ alpha = mean(cout$ClaimAmount)^2/var(cout$ClaimAmount)
 beta = mean(cout$ClaimAmount)/var(cout$ClaimAmount)
 qqplot (cout$ClaimAmount, qgamma ( ppoints (cout$ClaimAmount,3/8), shape =alpha, rate =beta),
         	xlab ="Prix des sinistres observés",
-        main ="Graphique des quantiles pour les prix des sinistres.")
+        main ="Graphique des quantiles pour les prix des sinistres (loi gamma).")
 abline (a=0,b=1, col ="red")
 ```
 
@@ -71,36 +108,13 @@ La loi gamma semble très bien s'adapter à notre modèle
 ```{r}
 qqplot (cout$ClaimAmount, qnorm ( ppoints (cout$ClaimAmount,3/8), mean =mean(cout$ClaimAmount), sd =sqrt(var(cout$ClaimAmount))),
         	xlab ="Prix des sinistres observés",
-        main ="Graphique des quantiles pour les prix des sinistres.")
+        main ="Graphique des quantiles pour les prix des sinistres (loi normale).")
 abline (a=0,b=1, col ="red")
 ```
 
-### Test avec un modèle linéaire simple
+La loi normale ne semble pas être très adaptée à notre modèle
 
-Après cette première erreur, nous avons essayé un modèle linéaire simple pour voir si l'erreur venait uniquement de start ou d'une autre chose triviale.
-
-```{r}
-lm(ClaimAmount ~ 1, data = cout, offset = Exposure)
-```
-
-```{r}
-lm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
-
-```
-
-Ce modèle est sûrement très mauvais mais il permet de voir que certaines choses fonctionnent.
-
-### Test pour voir les erreurs avec un modèle Gamma
-
-```{r, error = TRUE}
-glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma())
-```
-
-```{r, error = TRUE}
-glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma(), start = rep(0, 49))
-```
-
-## Vrai modèle
+## Séparation en échantillon apprentissage et échantillon test
 
 ```{r}
 #freMPL5 <- subset(freMPL5, freMPL5$SocioCateg != "CSP30" & freMPL5$SocioCateg !="CSP45" & freMPL5$SocioCateg !="CSP63" & freMPL5$SocioCateg !="CSP61")
@@ -108,6 +122,13 @@ glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNon
 perm <- sample(nrow(cout),80/100*nrow(cout))
 train <- cout[perm,]
 test <- cout[-perm,]
+
+```
+
+## GLM pour la loi gamma
+
+```{r}
+
 ```
 
 ```{r}

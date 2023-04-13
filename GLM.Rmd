@@ -114,6 +114,16 @@ abline (a=0,b=1, col ="red")
 
 La loi normale ne semble pas être très adaptée à notre modèle
 
+```{r}
+#le graphique suivant sur le qqplot de notre loi lognormal ne marche pas car la variance de notre variable est très elvé ce qui fait que lorque l'on la passe à l'exponentielle, on obtient m= INF
+m <- exp(mean(cout$ClaimAmount)+var(cout$ClaimAmount)/2)
+var <- exp(2*m+var(cout$ClaimAmount))*(exp(var(cout$ClaimAmount))-1)
+qqplot (cout$ClaimAmount, qlnorm ( ppoints (cout$ClaimAmount,3/8), mean = m, sd = var),
+        	xlab ="Prix des sinistres observés",
+        main ="Graphique des quantiles pour les prix des sinistres (loi log normale).")
+abline (a=0,b=1, col ="red")
+```
+
 ## Séparation en échantillon apprentissage et échantillon test
 
 ```{r}
@@ -170,6 +180,16 @@ modBoth = step(gamma.log, mod0, trace=F,direction = c('both'))
 summary(modBoth)
 ```
 
+```{r}
+modBack = step(gamma.log, mod0, trace=F,direction = c('backward'))
+summary(modBack)
+```
+
+```{r}
+modFor = step(gamma.log, mod0, trace=F,direction = c('forward'))
+summary(modFor)
+```
+
 ### Prediction
 
 ```{r}
@@ -182,7 +202,87 @@ prediction <- predict.glm(gamma.log, newdata = test, type = "response")
 hist(prediction)
 ```
 
-### 
+### RMSE
+
+```{r}
+RMSE_train <- sqrt(mean(modBoth$residuals^2))
+RMSE_train
+```
+
+## Loi Gaussienne 
+
+### 1er Modele
+
+```{r}
+gauss.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
+summary(gauss.id)
+```
+
+Un systeme dont les variables interessantes sont bien:
+
+(BonusMalus, RiskArea12, ClaimNbResp, ClaimNbNonResp et Categ3)
+
+```{r}
+gauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
+summary(gauss.log)
+
+gauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "inverse"))
+summary(gauss.inv)
+```
+
+La fonction de lien log pour la loi gaussienne a des variables tres interessantes à prendre en compte
+
+(notamment tous les types d'accidents, les conducteurs âgés, BonusMalus, RiskArea12 et certaines classes sociales)
+
+### Both,backward and forward
+
+```{r}
+mod0 <- glm(ClaimAmount ~ 1, data = train, family = gaussian(link = "identity"))
+```
+
+```{r}
+modBoth = step(gauss.id, mod0, trace=F,direction = c('both'))
+summary(modBoth)
+```
+
+### Prediction
+
+```{r}
+estimation <- gauss.id$fitted.values
+hist(estimation)
+
+prediction <- predict.glm(gauss.id, newdata = test, type = "response")
+hist(prediction)
+```
+
+## Loi Gaussienne Inverse
+
+### 1er Modele
+
+```{r}
+invgauss.mu <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "1/mu^2"))
+summary(invgauss.mu)
+```
+
+```{r}
+invgauss.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "identity"))
+
+invgauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "inverse"))
+
+invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"))
+```
+
+### Both, Backward and Forward
+
+### Prediction
+
+## Loi Log Normale
+
+### 1er Modele
+
+### Both, Backward and Forward
+
+### Prediction
 
 # GLM pour la variable fréquence
 

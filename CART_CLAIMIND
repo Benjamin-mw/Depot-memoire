@@ -40,6 +40,7 @@ library(CASdatasets)
 
 
 ```{r}
+data(freMPL5)
 set.seed(seed = 2023)
 echantillon <- sample(c(TRUE, FALSE), nrow(freMPL5), replace=TRUE, prob=c(0.8,0.2))
 freMPL5.train1  <- freMPL5[echantillon, ]

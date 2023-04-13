@@ -36,7 +36,12 @@ library(sp)
 library(CASdatasets)
 ```
 
+```{r}
+duplicates <- duplicated(freMPL5)
+# Suppression des doublons
+freMPL5 <- freMPL5[!duplicates,]
 
+```
 
 
 ```{r}

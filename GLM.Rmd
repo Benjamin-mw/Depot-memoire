@@ -245,6 +245,11 @@ modBoth = step(gauss.id, mod0, trace=F,direction = c('both'))
 summary(modBoth)
 ```
 
+```{r}
+modBack = step(gauss.id, mod0, trace=F,direction = c('backward'))
+summary(modBack)
+```
+
 ### Prediction
 
 ```{r}
@@ -280,9 +285,58 @@ invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp
 
 ### 1er Modele
 
+```{r}
+lognorm.id <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
+summary(lognorm.id)
+```
+
+```{r}
+lognorm.inv <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "inverse"))
+lognorm.log <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
+```
+
+```{r}
+summary(lognorm.inv)
+summary(lognorm.log)
+```
+
 ### Both, Backward and Forward
 
+```{r}
+mod0 <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "identity"))
+```
+
+```{r}
+modBoth = step(lognorm.id, mod0, trace=F,direction = c('both'))
+summary(modBoth)
+```
+
+```{r}
+modBack = step(lognorm.id, mod0, trace=F,direction = c('backward'))
+summary(modBack)
+```
+
+```{r}
+modFor = step(lognorm.id, mod0, trace=F,direction = c('forward'))
+summary(modFor)
+```
+
 ### Prediction
+
+```{r}
+estimation <- lognorm.id$fitted.values
+hist(estimation)
+
+prediction <- predict.glm(lognorm.id, newdata = test, type = "response")
+hist(prediction)
+```
+
+### RMSE
+
+```{r}
+RMSE_train <- sqrt(mean(modBoth$residuals^2))
+RMSE_train
+```
 
 # GLM pour la variable fréquence
 

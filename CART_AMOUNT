@@ -55,9 +55,9 @@ freMPL5.train$ClaimInd <- factor(freMPL5.train$ClaimInd)
 
 
 
-#Pour faire une analyse de données, nous allons transformer toutes les variables
+#Nous allons transformer toutes les variables
 #quantitatives en variables qualitatives de manière à avoir un nombre homogènes
-#d'assurés dans chaque classe.
+#d'assurés dans chaque classe. Pour la partie Train
 freMPL5.train$DrivAge_fact <- cut(freMPL5.train$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
 
 freMPL5.train$BonusMalus <- cut(freMPL5.train$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
@@ -71,9 +71,7 @@ freMPL5.test$ClaimInd <- factor(freMPL5.test$ClaimInd)
 
 
 
-#Pour faire une analyse de données, nous allons transformer toutes les variables
-#quantitatives en variables qualitatives de manière à avoir un nombre homogènes
-#d'assurés dans chaque classe.
+#pour la partie Test
 freMPL5.test$DrivAge_fact <- cut(freMPL5.test$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
 
 

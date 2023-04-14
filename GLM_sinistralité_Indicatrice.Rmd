@@ -61,7 +61,7 @@ test   <- freMPL5[!echantillon, ]
 
 ### Choix de modélisation
 
-L'objectif de cette étude est d'expliquer "ClaimInd" (représenter par la variable $Y$) grâce à $p$variables explicatives que nous déterminerons.
+L'objectif de cette étude est d'expliquer "ClaimInd" (représenter par la variable $Y$) grâce à $p$ variables explicatives que nous déterminerons.
 
 Le code ci-dessous permet de savoir que l'évènement rare est "l'assuré a eu un sinistre" Par conséquent, on affecte la valeur 1 à cet évènement et 0 sinon (comme cela est déjà codé).
 

@@ -209,7 +209,7 @@ RMSE_train <- sqrt(mean(modBoth$residuals^2))
 RMSE_train
 ```
 
-## Loi Gaussienne 
+## Loi Gaussienne
 
 ### 1er Modele
 

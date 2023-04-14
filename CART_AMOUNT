@@ -55,19 +55,35 @@ freMPL5.train$ClaimInd <- factor(freMPL5.train$ClaimInd)
 
 
 
-#Pour faire une analyse de données, nous allons transformer toutes les variables
+#Nous allons transformer toutes les variables
 #quantitatives en variables qualitatives de manière à avoir un nombre homogènes
-#d'assurés dans chaque classe.
+#d'assurés dans chaque classe. Pour la partie Train
 freMPL5.train$DrivAge_fact <- cut(freMPL5.train$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
 
 freMPL5.train$BonusMalus <- cut(freMPL5.train$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
 ```
 
 ```{r}
+freMPL5.test <- subset(freMPL5.test, freMPL5.test$ClaimAmount >= 0)
+freMPL5.test$HasKmLimit <- factor(freMPL5.test$HasKmLimit)
+freMPL5.test$RiskArea <- factor(freMPL5.test$RiskArea)
+freMPL5.test$ClaimInd <- factor(freMPL5.test$ClaimInd)
+
+
+
+#pour la partie Test
+freMPL5.test$DrivAge_fact <- cut(freMPL5.test$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+
+
+freMPL5.test$BonusMalus <- cut(freMPL5.test$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
+```
+
+
+```{r}
 #étape de construction de l'arbre maximal
 freMPL5.Tree.Amount <- rpart(ClaimAmount~MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
                       data=freMPL5.train,
-                      control=rpart.control(xval = 10, minbucket = 500,cp=0))
+                      control=rpart.control(xval = 10, minbucket = 150,cp=0))
 rpart.plot(freMPL5.Tree.Amount)
 
 
@@ -81,6 +97,14 @@ printcp(freMPL5.Tree.Amount)
 
 ```{r}
 #étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
-freMPL5.Tree.prune.Amount=prune(freMPL5.Tree.Amount,cp=0.00032)
+freMPL5.Tree.prune.Amount=prune(freMPL5.Tree.Amount,cp=0.00095)
 rpart.plot(freMPL5.Tree.prune.Amount)
+```
+
+```{r}
+#calcul de l'erreur quadratique moyenne
+pred <- predict(freMPL5.Tree.prune.Amount, newdata = freMPL5.test)
+mse <- mean((pred - freMPL5.test$ClaimAmount)^2)
+mse
+
 ```

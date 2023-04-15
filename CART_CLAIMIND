@@ -34,7 +34,12 @@ library(rpart)
 library(rpart.plot)
 library(sp)
 library(CASdatasets)
+library(ROSE)
 ```
+
+
+
+
 
 ```{r}
 duplicates <- duplicated(freMPL5)
@@ -43,9 +48,37 @@ freMPL5 <- freMPL5[!duplicates,]
 
 ```
 
-
 ```{r}
 data(freMPL5)
+#Création d'une variable de sinistralité
+freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
+freMPL5$Sinistres2 = round(freMPL5$Sinistres)
+#enlever les valeurs négatives
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+#passer en variables catégorielles
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+#segmentation des tranches d'âge
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+#Découpage CSP
+freMPL5$Categ = 0
+freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 1
+freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 2
+freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 3
+freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 4
+freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
+freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
+freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
+freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
+freMPL5$Categ = factor(freMPL5$Categ)
+
+
+
+```
+
+```{r}
+
 set.seed(seed = 2023)
 echantillon <- sample(c(TRUE, FALSE), nrow(freMPL5), replace=TRUE, prob=c(0.8,0.2))
 freMPL5.train1  <- freMPL5[echantillon, ]
@@ -53,91 +86,26 @@ freMPL5.test1   <- freMPL5[!echantillon, ]
 ```
 
 
-
-
-```{r}
-#Import jeu de données
-data(freMPL5)
-
-#Création d'une variable de sinistralité
-freMPL5.test1$Sinistres = freMPL5.test1$ClaimInd/freMPL5.test1$Exposure
-#Ajustement type des variables
-freMPL5.test1$HasKmLimit <- factor(freMPL5.test1$HasKmLimit)
-freMPL5.test1$RiskArea <- factor(freMPL5.test1$RiskArea)
-freMPL5.test1$OutUseNb <- as.numeric(freMPL5.test1$OutUseNb)
-#Suppression des valeurs négatives
-freMPL5.test1 <- subset(freMPL5.test1, freMPL5.test1$ClaimAmount >= 0)
-#Segmentation des tranches d'âge
-freMPL5.test1$DrivAge_fact <- cut(freMPL5.test1$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
-#Découpage CSP
-freMPL5.test1$Categ = 0
-freMPL5.test1$Categ[freMPL5.test1$SocioCateg == "CSP50"] = 1
-freMPL5.test1$Categ[freMPL5.test1$SocioCateg == "CSP55"] = 2
-freMPL5.test1$Categ[freMPL5.test1$SocioCateg == "CSP60"] = 3
-freMPL5.test1$Categ[freMPL5.test1$SocioCateg == "CSP1"] = 4
-freMPL5.test1$Categ[freMPL5.test1$SocioCateg == "CSP42"] = 5
-freMPL5.test1$Categ[freMPL5.test1$SocioCateg == "CSP46"] = 6
-freMPL5.test1$Categ[freMPL5.test1$SocioCateg == "CSP48"] = 7
-freMPL5.test1$Categ[freMPL5.test1$SocioCateg == "CSP66"] = 8
-freMPL5.test1$Categ = factor(freMPL5.test1$Categ)
-```
-
-
-
-```{r}
-#Import jeu de données
-data(freMPL5)
-
-#Création d'une variable de sinistralité
-freMPL5.train1$Sinistres = freMPL5.train1$ClaimInd/freMPL5.train1$Exposure
-#Ajustement type des variables
-freMPL5.train1$HasKmLimit <- factor(freMPL5.train1$HasKmLimit)
-freMPL5.train1$RiskArea <- factor(freMPL5.train1$RiskArea)
-freMPL5.train1$OutUseNb <- as.numeric(freMPL5.train1$OutUseNb)
-#Suppression des valeurs négatives
-freMPL5.train1 <- subset(freMPL5.train1, freMPL5.train1$ClaimAmount >= 0)
-#Segmentation des tranches d'âge
-freMPL5.train1$DrivAge_fact <- cut(freMPL5.train1$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
-#Découpage CSP
-freMPL5.train1$Categ = 0
-freMPL5.train1$Categ[freMPL5.train1$SocioCateg == "CSP50"] = 1
-freMPL5.train1$Categ[freMPL5.train1$SocioCateg == "CSP55"] = 2
-freMPL5.train1$Categ[freMPL5.train1$SocioCateg == "CSP60"] = 3
-freMPL5.train1$Categ[freMPL5.train1$SocioCateg == "CSP1"] = 4
-freMPL5.train1$Categ[freMPL5.train1$SocioCateg == "CSP42"] = 5
-freMPL5.train1$Categ[freMPL5.train1$SocioCateg == "CSP46"] = 6
-freMPL5.train1$Categ[freMPL5.train1$SocioCateg == "CSP48"] = 7
-freMPL5.train1$Categ[freMPL5.train1$SocioCateg == "CSP66"] = 8
-freMPL5.train1$Categ = factor(freMPL5.train1$Categ)
-```
-
 ```{r}
 table(freMPL5.train1$ClaimInd)
 ```
 
 ```{r}
-table(freMPL5.test1$ClaimInd)
-```
-
-
-
-
-```{r}
-#construction d'un arbre maximal
-freMPL5.Tree.claim <- rpart(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data=freMPL5.train1, method="class", control=rpart.control(xval = 10, minbucket = 7, minsplit = 10,cp=0.0005))
+freMPL5.Tree.claim <- rpart(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data=freMPL5.train1, method="class", control=rpart.control(xval = 20, minbucket =10 ,cp=0))
 rpart.plot(freMPL5.Tree.claim)
+
   
 ```
 
 ```{r}
-#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisit un cp qui minimise ce taux d'erreur pour une taille correcte
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
 plotcp(freMPL5.Tree.claim)
 printcp(freMPL5.Tree.claim)
 ```
 
 ```{r}
 #étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
-freMPL5.Tree.prune.claim=prune(freMPL5.Tree.claim,cp= 0.00074)
+freMPL5.Tree.prune.claim=prune(freMPL5.Tree.claim,cp= 0.00072)
 rpart.plot(freMPL5.Tree.prune.claim)
 ```
 
@@ -147,7 +115,28 @@ prediction <- predict(freMPL5.Tree.prune.claim, newdata=freMPL5.test1, type="cla
 ```
 
 
+
 ```{r}
-#matrice de confusion
 table(prediction, freMPL5.test1$ClaimInd)
+```
+
+
+
+
+```{r}
+freMPL5.Tree.sin <- rpart(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data=freMPL5.train1, method="class", control=rpart.control(xval = 10, minbucket = 7, maxdepth= 5, cp=0))
+rpart.plot(freMPL5.Tree.sin)
+
+```
+
+```{r}
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
+plotcp(freMPL5.Tree.sin)
+printcp(freMPL5.Tree.sin)
+```
+
+```{r}
+#étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
+freMPL5.Tree.prune.sin=prune(freMPL5.Tree.sin,cp= 0.00044)
+rpart.plot(freMPL5.Tree.prune.sin)
 ```

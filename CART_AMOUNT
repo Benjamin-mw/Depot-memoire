@@ -41,51 +41,58 @@ library(CASdatasets)
 
 ```{r}
 data(freMPL5)
+#enlever les valeurs négatives
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+#passer en variables catégorielles
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+#segmentation des tranches d'âge
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+#Découpage CSP
+freMPL5$Categ = 0
+freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 1
+freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 2
+freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 3
+freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 4
+freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
+freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
+freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
+freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
+freMPL5$Categ = factor(freMPL5$Categ)
 
-perm <- sample(nrow(freMPL5),80/100*nrow(freMPL5))
-freMPL5.train <- freMPL5[perm,]
-freMPL5.test <- freMPL5[-perm,]
 ```
+
+Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que plus tard dans la tarification ?
+
+Nous allons faire un système à double pénalisation, "BonusMalus" sera pris en compte dans nos GLMs et notre grille de tarification
+
+## Première estimation de la loi de notre variable "ClaimAmount"
+
+```{r, error = TRUE}
+cout <- freMPL5[freMPL5$ClaimInd == 1,]
+```
+
+
+
 
 ```{r}
-freMPL5.train <- subset(freMPL5.train, freMPL5.train$ClaimAmount >= 0)
-freMPL5.train$HasKmLimit <- factor(freMPL5.train$HasKmLimit)
-freMPL5.train$RiskArea <- factor(freMPL5.train$RiskArea)
-freMPL5.train$ClaimInd <- factor(freMPL5.train$ClaimInd)
 
 
-
-#Pour faire une analyse de données, nous allons transformer toutes les variables
-#quantitatives en variables qualitatives de manière à avoir un nombre homogènes
-#d'assurés dans chaque classe.
-freMPL5.train$DrivAge_fact <- cut(freMPL5.train$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
-
-freMPL5.train$BonusMalus <- cut(freMPL5.train$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
+perm <- sample(nrow(cout),80/100*nrow(cout))
+cout.train <- cout[perm,]
+cout.test <- cout[-perm,]
 ```
 
-```{r}
-freMPL5.test <- subset(freMPL5.test, freMPL5.test$ClaimAmount >= 0)
-freMPL5.test$HasKmLimit <- factor(freMPL5.test$HasKmLimit)
-freMPL5.test$RiskArea <- factor(freMPL5.test$RiskArea)
-freMPL5.test$ClaimInd <- factor(freMPL5.test$ClaimInd)
 
 
-
-#Pour faire une analyse de données, nous allons transformer toutes les variables
-#quantitatives en variables qualitatives de manière à avoir un nombre homogènes
-#d'assurés dans chaque classe.
-freMPL5.test$DrivAge_fact <- cut(freMPL5.test$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
-
-
-freMPL5.test$BonusMalus <- cut(freMPL5.test$BonusMalus, c(50,54,seq(60, 200, 20)), include.lowest = TRUE)
-```
 
 
 ```{r}
 #étape de construction de l'arbre maximal
-freMPL5.Tree.Amount <- rpart(ClaimAmount~MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
-                      data=freMPL5.train,
-                      control=rpart.control(xval = 20, minbucket = 100,cp=0))
+freMPL5.Tree.Amount <- rpart(ClaimAmount~MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+                      data=cout.train,
+                      control=rpart.control(xval = 20, minbucket = 1,maxdepth = 8,cp=0))
 rpart.plot(freMPL5.Tree.Amount)
 
 
@@ -99,13 +106,13 @@ printcp(freMPL5.Tree.Amount)
 
 ```{r}
 #étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
-freMPL5.Tree.prune.Amount=prune(freMPL5.Tree.Amount,cp=7.3456e-04)
+freMPL5.Tree.prune.Amount=prune(freMPL5.Tree.Amount,cp=1.0943e-02)
 rpart.plot(freMPL5.Tree.prune.Amount)
 ```
 
 ```{r}
-pred <- predict(freMPL5.Tree.prune.Amount, newdata = freMPL5.test)
-mse <- mean((pred - freMPL5.test$ClaimAmount)^2)
+pred <- predict(freMPL5.Tree.prune.Amount, newdata = cout.test)
+mse <- mean((pred - cout.test$ClaimAmount)^2)
 mse
 
 ```

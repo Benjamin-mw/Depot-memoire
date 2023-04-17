@@ -39,6 +39,8 @@ library(sp)
 library(CASdatasets)
 ```
 
+
+
 ```{r}
 data(freMPL5)
 #enlever les valeurs négatives
@@ -115,4 +117,17 @@ pred <- predict(freMPL5.Tree.prune.Amount, newdata = cout.test)
 mse <- mean((pred - cout.test$ClaimAmount)^2)
 mse
 
+```
+```{r}
+#moyenne du montant des sinistres
+mean_pred <- mean(pred)
+mean_pred
+```
+```{r}
+#importance des variables dans l'arbre
+importance <- round(freMPL5.Tree.prune.Amount$variable.importance/sum(freMPL5.Tree.prune.Amount$variable.importance)*100, 2)
+importance
+```
+```{r}
+rsq.rpart(freMPL5.Tree.prune.Amount)
 ```

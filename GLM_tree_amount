@@ -64,7 +64,7 @@ testGLM.data <- cout[-train.index,]
 
 ```{r}
 
-glm_model <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact , data = trainGLM.data, family = gaussian(link = "log"))
+
 glm_tree_lognormale <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = trainGLM.data , maxdepth = 4, family = gaussian(link = "log"))
 plot(glm_tree_lognormale)
@@ -78,7 +78,14 @@ BIC(glm_tree_lognormale)
 ```
 
 ```{r}
-pred <- predict(glm_tree_lognormale, newdata = testGLM.data)
-mse <- mean((pred - testGLM.data$ClaimAmount)^2)
+predglmT <- predict(glm_tree_lognormale, newdata = testGLM.data)
+mse <- mean((predglmT - testGLM.data$ClaimAmount)^2)
 mse
+```
+
+
+```{r}
+#moyenne du montant des sinistres
+mean_pred <- mean(predglmT)
+mean_pred
 ```

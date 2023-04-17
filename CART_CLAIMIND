@@ -28,13 +28,22 @@ library(CASdatasets)
 install.packages("xts")
 install.packages("sp")
 install.packages("zoo")
+
+
 ```
+
+```{r}
+install.packages("DMwR")
+```
+
 ```{r}
 library(rpart)
 library(rpart.plot)
 library(sp)
 library(CASdatasets)
-library(ROSE)
+library(pROC)
+library(ROCR)
+library(DMwR)
 ```
 
 
@@ -110,21 +119,31 @@ rpart.plot(freMPL5.Tree.prune.claim)
 ```
 
 ```{r}
-prediction <- predict(freMPL5.Tree.prune.claim, newdata=freMPL5.test1, type="class")
+prediction2 <- predict(freMPL5.Tree.prune.claim, newdata=freMPL5.test1, type="class")
 
 ```
 
 
 
 ```{r}
-table(prediction, freMPL5.test1$ClaimInd)
+table(prediction2, freMPL5.test1$ClaimInd)
 ```
 
-
-
+```{r, error = TRUE}
+sin <- freMPL5[freMPL5$ClaimInd == 1,]
+```
 
 ```{r}
-freMPL5.Tree.sin <- rpart(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data=freMPL5.train1, method="class", control=rpart.control(xval = 10, minbucket = 7, maxdepth= 5, cp=0))
+
+set.seed(seed = 2023)
+echantillon <- sample(c(TRUE, FALSE), nrow(sin), replace=TRUE, prob=c(0.8,0.2))
+freMPL5.trainsin1  <- sin[echantillon, ]
+freMPL5.testsin1   <- sin[!echantillon, ]
+```
+
+```{r}
+#pour le nombre de sinistre avec claimInd=1
+freMPL5.Tree.sin <- rpart(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data=freMPL5.trainsin1, control=rpart.control(xval = 10, minbucket = 7,maxdepth=5, cp=0))
 rpart.plot(freMPL5.Tree.sin)
 
 ```
@@ -136,7 +155,16 @@ printcp(freMPL5.Tree.sin)
 ```
 
 ```{r}
+#pour le nombre de sinistre
 #étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
-freMPL5.Tree.prune.sin=prune(freMPL5.Tree.sin,cp= 0.00044)
+freMPL5.Tree.prune.sin=prune(freMPL5.Tree.sin,cp= 3.2641e-04)
 rpart.plot(freMPL5.Tree.prune.sin)
+```
+
+```{r}
+predictionSin <- predict(freMPL5.Tree.prune.sin, newdata=freMPL5.test1)
+
+#moyenne du nombre de sinistres
+mean_pred <- mean(predictionglmT)
+mean_pred
 ```

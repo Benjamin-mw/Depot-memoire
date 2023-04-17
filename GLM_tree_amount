@@ -1,16 +1,35 @@
 ---
-title: "GLMTREE"
+title: "cart"
 output: html_document
-date: "2023-04-12"
+date: "2023-02-03"
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Cart
+
 ```{r}
-install.packages("party")
+install.packages("rpart")
+install.packages("rpart.plot")
+install.packages("CASdatasets", repos = "http://dutangc.perso.math.cnrs.fr/RRepository/", type="source")
+install.packages("CASdatasets", repos = "http://dutangc.free.fr/pub/RRepos/", type="source")
+install.packages("CASdatasets", repos = "http://cas.uqam.ca/pub/", type="source")
+
+#library(CASdatasets)
+install.packages("rpart")
 install.packages("partykit")
+library(rpart)
+library(partykit)
+install.packages("devtools")
+devtools::install_github("dutangc/CASdatasets", subdir="pkg")
+library(CASdatasets)
+
+
+install.packages("xts")
+install.packages("sp")
+install.packages("zoo")
 ```
 
 ```{r}
@@ -18,9 +37,8 @@ library(rpart)
 library(rpart.plot)
 library(sp)
 library(CASdatasets)
-library(party)
-library(partykit)
 ```
+
 
 
 ```{r}
@@ -47,45 +65,69 @@ freMPL5$Categ = factor(freMPL5$Categ)
 
 ```
 
+Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que plus tard dans la tarification ?
+
+Nous allons faire un système à double pénalisation, "BonusMalus" sera pris en compte dans nos GLMs et notre grille de tarification
+
+## Première estimation de la loi de notre variable "ClaimAmount"
 
 ```{r, error = TRUE}
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
 ```
 
 
+
+
 ```{r}
 
 
-set.seed(123) 
-train.index <- sample(1:nrow(cout), size=0.7*nrow(cout), replace=FALSE)
-trainGLM.data <- cout[train.index,]
-testGLM.data <- cout[-train.index,]
+perm <- sample(nrow(cout),80/100*nrow(cout))
+cout.train <- cout[perm,]
+cout.test <- cout[-perm,]
+```
+
+
+
+
+
+```{r}
+#étape de construction de l'arbre maximal
+freMPL5.Tree.Amount <- rpart(ClaimAmount~MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+                      data=cout.train,
+                      control=rpart.control(xval = 20, minbucket = 1,maxdepth = 8,cp=0))
+rpart.plot(freMPL5.Tree.Amount)
+
+
+```
+```{r}
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
+plotcp(freMPL5.Tree.Amount)
+printcp(freMPL5.Tree.Amount)
+```
+
+
+```{r}
+#étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
+freMPL5.Tree.prune.Amount=prune(freMPL5.Tree.Amount,cp=1.0943e-02)
+rpart.plot(freMPL5.Tree.prune.Amount)
 ```
 
 ```{r}
-
-
-glm_tree_lognormale <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
-  data = trainGLM.data , maxdepth = 4, family = gaussian(link = "log"))
-plot(glm_tree_lognormale)
-
-
-```
-
-```{r}
-AIC(glm_tree_lognormale)
-BIC(glm_tree_lognormale)
-```
-
-```{r}
-predglmT <- predict(glm_tree_lognormale, newdata = testGLM.data)
-mse <- mean((predglmT - testGLM.data$ClaimAmount)^2)
+pred <- predict(freMPL5.Tree.prune.Amount, newdata = cout.test)
+mse <- mean((pred - cout.test$ClaimAmount)^2)
 mse
+
 ```
-
-
 ```{r}
 #moyenne du montant des sinistres
-mean_pred <- mean(predglmT)
+mean_pred <- mean(pred)
 mean_pred
+```
+```{r}
+#importance des variables dans l'arbre
+importance <- round(freMPL5.Tree.prune.Amount$variable.importance/sum(freMPL5.Tree.prune.Amount$variable.importance)*100, 2)
+importance
+```
+```{r}
+rsq.rpart(freMPL5.Tree.prune.Amount)
 ```

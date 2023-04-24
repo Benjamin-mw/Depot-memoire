@@ -1,5 +1,5 @@
 ---
-title: "GLMTREE"
+title: "GLMTREEAMOUNT"
 output: html_document
 date: "2023-04-12"
 ---
@@ -45,11 +45,18 @@ freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
 freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
 freMPL5$Categ = factor(freMPL5$Categ)
 
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+                             ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+                                    ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+                                           ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 ```
 
 
 ```{r, error = TRUE}
-cout <- freMPL5[freMPL5$ClaimInd == 1,]
+cout8 <- freMPL5[freMPL5$ClaimInd == 1,]
 ```
 
 
@@ -57,16 +64,16 @@ cout <- freMPL5[freMPL5$ClaimInd == 1,]
 
 
 set.seed(123) 
-train.index <- sample(1:nrow(cout), size=0.7*nrow(cout), replace=FALSE)
-trainGLM.data <- cout[train.index,]
-testGLM.data <- cout[-train.index,]
+train.index <- sample(1:nrow(cout8), size=0.7*nrow(cout8), replace=FALSE)
+trainGLM.data <- cout8[train.index,]
+testGLM.data <- cout8[-train.index,]
 ```
 
 ```{r}
 
 
 glm_tree_lognormale <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
-  data = trainGLM.data , maxdepth = 4, family = gaussian(link = "log"))
+  data = trainGLM.data , maxdepth = 5, family = gaussian(link = "log"))
 plot(glm_tree_lognormale)
 
 

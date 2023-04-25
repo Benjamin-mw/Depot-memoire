@@ -94,7 +94,34 @@ cout <- freMPL5[freMPL5$ClaimInd == 1,]
 summary(cout$ClaimAmount)
 ```
 
+Dans un premier temps , on observe une répartition très inégale des montants des accidents. En plus d'une moyenne de 2277.22 et d'une médiane à 800.95, le montant maximal des accidents de notre jeu de données est de 95150.96.
+
 ```{r}
+hist(cout$ClaimAmount)
+plot(cout$ClaimAmount)
+abline (a=60000,b=0, col ="red")
+#on observe dans un premier temps deux valeurs extremes qui dépassent de 47 fois la moyenne.
+
+#Etudions toujours la répartition de la variable de sévérité privé de ces deux valeurs extrêmes.
+cout1 <- subset(cout, cout$ClaimAmount <60000)
+hist(cout1$ClaimAmount)
+plot(cout1$ClaimAmount)
+abline (a=35000,b=0, col ="blue")
+#Pour une étude non biaisée vers d'autres valeurs moins extrêmes, il serait également préferable de faire une étude sur des montants inférieurs à 35000€. Seulement sept observations ont été estimées supérieures à ce prix.
+
+cout2 <- subset(cout, cout$ClaimAmount <35000)
+hist(cout2$ClaimAmount)
+plot(cout2$ClaimAmount)
+```
+
+### Estimation d'une loi
+
+Dans notre étude sur la variable de sévérité ClaimAmount, nous allons essayer d'approcher la distribution de cette variable par une loi continue connue.
+
+Nous utiliserons la méthode du qqplot
+
+```{r}
+#Approche par une loi Gamma
 alpha = mean(cout$ClaimAmount)^2/var(cout$ClaimAmount)
 beta = mean(cout$ClaimAmount)/var(cout$ClaimAmount)
 qqplot (cout$ClaimAmount, qgamma ( ppoints (cout$ClaimAmount,3/8), shape =alpha, rate =beta),
@@ -103,7 +130,7 @@ qqplot (cout$ClaimAmount, qgamma ( ppoints (cout$ClaimAmount,3/8), shape =alpha,
 abline (a=0,b=1, col ="red")
 ```
 
-La loi gamma semble très bien s'adapter à notre modèle
+La loi gamma semble très bien s'adapter à notre modèle. De plus, une divergence avec la loi est observée lorsque les valeurs sont supérieures à 35 000. Cela nous maintient dans l'idée d'étudier notre jeu de données aux montants inférieurs à 35000.
 
 ```{r}
 qqplot (cout$ClaimAmount, qnorm ( ppoints (cout$ClaimAmount,3/8), mean =mean(cout$ClaimAmount), sd =sqrt(var(cout$ClaimAmount))),
@@ -115,10 +142,9 @@ abline (a=0,b=1, col ="red")
 La loi normale ne semble pas être très adaptée à notre modèle
 
 ```{r}
-#le graphique suivant sur le qqplot de notre loi lognormal ne marche pas car la variance de notre variable est très elvé ce qui fait que lorque l'on la passe à l'exponentielle, on obtient m= INF
-m <- exp(mean(cout$ClaimAmount)+var(cout$ClaimAmount)/2)
-var <- exp(2*m+var(cout$ClaimAmount))*(exp(var(cout$ClaimAmount))-1)
-qqplot (cout$ClaimAmount, qlnorm ( ppoints (cout$ClaimAmount,3/8), mean = m, sd = var),
+#Approche par la loi log normale
+fit_params <- fitdistr(cout2$ClaimAmount,"lognormal")
+qqplot (cout2$ClaimAmount, qlnorm ( ppoints (cout2$ClaimAmount,3/8), mean = fit_params$estimate['meanlog'], sd = fit_params$estimate['sdlog']),
         	xlab ="Prix des sinistres observés",
         main ="Graphique des quantiles pour les prix des sinistres (loi log normale).")
 abline (a=0,b=1, col ="red")
@@ -127,7 +153,7 @@ abline (a=0,b=1, col ="red")
 ## Séparation en échantillon apprentissage et échantillon test
 
 ```{r}
-perm <- sample(nrow(cout),80/100*nrow(cout))
+perm <- sample(nrow(cout2),80/100*nrow(cout2))
 train <- cout[perm,]
 test <- cout[-perm,]
 
@@ -136,7 +162,7 @@ test <- cout[-perm,]
 ## Loi gamma
 
 ```{r}
-train <- subset(train, train$ClaimAmount <60000)
+train <- subset(train, train$ClaimAmount <35000)
 summary(train$ClaimAmount)
 ```
 

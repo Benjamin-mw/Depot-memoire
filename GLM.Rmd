@@ -67,15 +67,10 @@ freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
 
 #Découpage CSP
-freMPL5$Categ = 0
-freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 1
-freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 2
-freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 3
-freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 4
-freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
-freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
-freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
-freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
+freMPL5$Categ <-  ifelse(freMPL5$SocioCateg %in% c("CSP46","CSP48"), "Categ1",
+ifelse(freMPL5$SocioCateg %in% c("CSP50","CSP55"), "Categ2",
+ifelse(freMPL5$SocioCateg %in% c("CSP60"),"Categ3",
+ifelse(freMPL5$SocioCateg %in% c("CSP42","CSP1", "CSP66"),"Categ4","Categ0"))))
 freMPL5$Categ = factor(freMPL5$Categ)
 
 #découpage RiskArea
@@ -88,7 +83,8 @@ freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 ```
 
 ```{r}
-summary(freMPL5$HasKmLimit)
+summary(freMPL5$Categ)
+
 ```
 
 Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que plus tard dans la tarification ?
@@ -173,13 +169,8 @@ test <- cout2[-perm,]
 ## Loi gamma
 
 ```{r}
-train <- subset(train, train$ClaimAmount <35000)
-summary(train$ClaimAmount)
-```
 
-```{r}
-
-gamma.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "inverse"),start =rep(0.01,32))
+gamma.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "inverse"),start =rep(0.01,28),na.action = na.exclude)
 summary(gamma.inv)
 ```
 
@@ -303,16 +294,16 @@ hist(prediction)
 ### 1er Modele
 
 ```{r}
-invgauss.mu <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "1/mu^2"),start=rep(0.01,32))
+invgauss.mu <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "1/mu^2"),start=rep(0.01,28))
 summary(invgauss.mu)
 ```
 
 ```{r}
-invgauss.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "identity"))
+invgauss.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "identity"),na.action = na.exclude)
 
-invgauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "inverse"))
+invgauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "inverse"),na.action = na.exclude)
 
-invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"))
+invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),,na.action = na.exclude)
 ```
 
 ### Both, Backward and Forward

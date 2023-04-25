@@ -61,7 +61,6 @@ freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
 
 #passer en variables catégorielles
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
-freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 
 #segmentation des tranches d'âge
@@ -78,11 +77,23 @@ freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
 freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
 freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
 freMPL5$Categ = factor(freMPL5$Categ)
+
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+```
+
+```{r}
+summary(freMPL5$HasKmLimit)
 ```
 
 Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que plus tard dans la tarification ?
 
-Nous allons faire un système à double pénalisation, "BonusMalus" sera pris en compte dans nos GLMs et notre grille de tarification
+Nous allons faire un système à double pénalisation, "BonusMalus" sera pris en compte dans nos GLMs et notre grille de tarification.
 
 ## Première estimation de la loi de notre variable "ClaimAmount"
 
@@ -154,8 +165,8 @@ abline (a=0,b=1, col ="red")
 
 ```{r}
 perm <- sample(nrow(cout2),80/100*nrow(cout2))
-train <- cout[perm,]
-test <- cout[-perm,]
+train <- cout2[perm,]
+test <- cout2[-perm,]
 
 ```
 
@@ -167,7 +178,8 @@ summary(train$ClaimAmount)
 ```
 
 ```{r}
-gamma.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "inverse"))
+
+gamma.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "inverse"),start =rep(0.01,32))
 summary(gamma.inv)
 ```
 
@@ -291,7 +303,7 @@ hist(prediction)
 ### 1er Modele
 
 ```{r}
-invgauss.mu <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "1/mu^2"))
+invgauss.mu <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "1/mu^2"),start=rep(0.01,32))
 summary(invgauss.mu)
 ```
 
@@ -567,4 +579,24 @@ fit <- train(ClaimInd ~ MariStat + Categ + VehUsage + HasKmLimit +
     ClaimNbWindscreen + OutUseNb + RiskArea + BonusMalus + DrivAge_fact,
     data = freMPL5.train, method = "glm", 
     family = "binomial", trControl = fit.control)
+```
+
+```{r}
+invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),na.action = na.exclude)
+```
+
+```{r}
+summary(train$ClaimAmount)
+summary(train$Categ)
+summary(train$MariStat)
+summary(train$VehUsage)
+summary(train$HasKmLimit)
+summary(train$ClaimNbResp)
+summary(train$ClaimNbNonResp)
+summary(train$ClaimNbParking)
+summary(train$ClaimNbFireTheft)
+summary(train$ClaimNbWindscreen)
+summary(train$BonusMalus)
+summary(train$RiskArea)
+summary(train$DrivAge_fact)
 ```

@@ -43,6 +43,13 @@ freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
 freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
 freMPL5$Categ = factor(freMPL5$Categ)
 
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+                             ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+                                    ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+                                           ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 
 
 ```
@@ -86,4 +93,49 @@ deviance_residuelle <- sum(dpois(freMPL5.testsin12$Sinistres2, lambda = predicti
 
 # afficher la déviance résiduelle de Poisson
 deviance_residuelle
+```
+
+
+
+```{r}
+
+set.seed(seed = 2023)
+echantillon1 <- sample(c(TRUE, FALSE), nrow(sin2), replace=TRUE, prob=c(0.8,0.2))
+freMPL5.trainsin13  <- freMPL5[echantillon1, ]
+freMPL5.testsin13   <- freMPL5[!echantillon1, ]
+```
+
+```{r}
+
+freMPL5.Tree.sinpois2 <- rpart(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data=freMPL5.trainsin13, method="poisson", control=rpart.control(xval = 10, maxdepth=11, cp=0))
+rpart.plot(freMPL5.Tree.sinpois2)
+
+```
+
+```{r}
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
+plotcp(freMPL5.Tree.sinpois2)
+printcp(freMPL5.Tree.sinpois2)
+```
+
+```{r}
+#pour le nombre de sinistre
+#étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
+freMPL5.Tree.prune.sinpois2=prune(freMPL5.Tree.sinpois2,cp=3.2253e-03 )
+rpart.plot(freMPL5.Tree.prune.sinpois2)
+```
+
+
+```{r}
+predictionSinPoi2 <- predict(freMPL5.Tree.prune.sinpois2, newdata=freMPL5.testsin13)
+deviance_residuelle <- sum(dpois(freMPL5.testsin13$Sinistres2, lambda = predictionSinPoi2, log = TRUE))
+
+# afficher la déviance résiduelle de Poisson
+deviance_residuelle
+```
+
+```{r}
+#importance des variables dans l'arbre
+importance2 <- round(freMPL5.Tree.prune.sinpois2$variable.importance/sum(freMPL5.Tree.prune.sinpois2$variable.importance)*100, 2)
+importance2
 ```

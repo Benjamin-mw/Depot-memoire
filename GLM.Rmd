@@ -32,6 +32,7 @@ library(TeachingDemos)
 library(factoextra)
 library(ROCR)
 library(plotROC)
+library(caret)
 ```
 
 # GLM pour la variable coût
@@ -40,49 +41,158 @@ library(plotROC)
 
 ```{r}
 data(freMPL5)
+```
+
+Notre variable "ClaimAmount" est une variable quantitative et représente le prix total des accidents survenus au cours de l'année pour chacun des assurés.
+
+Cette variable prend ainsi une valeur nulle lorque la variable "ClaimInd" a la valeur nulle, c'est-à-dire si aucun accident n'est survenu et prend des valeurs positives dans le cas contraire.
+
+```{r}
+summary(freMPL5$ClaimAmount)
+```
+
+Seulement, nos données présentent des cas particuliés et isolés dans laquelle la variable ClaimAmount prend des valeurs négatives. Nous élimineront ces données dans la suite de notre étude de la variable et nous nous intéresserons aux valeurs que celle-ci peut prendre lorsqu'un incident a lieu.
+
+Nous utiliserons également le même découpage réalisé lors de l'étude de la variable fréquence.
+
+```{r}
+#enlever les valeurs négatives
 freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+
+#passer en variables catégorielles
 freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
-freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
 
+#segmentation des tranches d'âge
 freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+
+#Découpage CSP
+freMPL5$Categ <-  ifelse(freMPL5$SocioCateg %in% c("CSP46","CSP48"), "Categ1",
+ifelse(freMPL5$SocioCateg %in% c("CSP50","CSP55"), "Categ2",
+ifelse(freMPL5$SocioCateg %in% c("CSP60"),"Categ3",
+ifelse(freMPL5$SocioCateg %in% c("CSP42","CSP1", "CSP66"),"Categ4","Categ0"))))
+freMPL5$Categ = factor(freMPL5$Categ)
+
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+```
+
+```{r}
+summary(freMPL5$Categ)
+
 ```
 
 Le coefficient de bonus-malus est réglementaire, ne faut-il pas le rajouter que plus tard dans la tarification ?
 
-## Premiers modèles
+Nous allons faire un système à double pénalisation, "BonusMalus" sera pris en compte dans nos GLMs et notre grille de tarification.
+
+## Première estimation de la loi de notre variable "ClaimAmount"
 
 ```{r, error = TRUE}
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
 ```
 
 ```{r}
+summary(cout$ClaimAmount)
+```
+
+Dans un premier temps , on observe une répartition très inégale des montants des accidents. En plus d'une moyenne de 2277.22 et d'une médiane à 800.95, le montant maximal des accidents de notre jeu de données est de 95150.96.
+
+```{r}
+hist(cout$ClaimAmount)
+plot(cout$ClaimAmount)
+abline (a=60000,b=0, col ="red")
+#on observe dans un premier temps deux valeurs extremes qui dépassent de 47 fois la moyenne.
+
+#Etudions toujours la répartition de la variable de sévérité privé de ces deux valeurs extrêmes.
+cout1 <- subset(cout, cout$ClaimAmount <60000)
+hist(cout1$ClaimAmount)
+plot(cout1$ClaimAmount)
+abline (a=35000,b=0, col ="blue")
+#Pour une étude non biaisée vers d'autres valeurs moins extrêmes, il serait également préferable de faire une étude sur des montants inférieurs à 35000€. Seulement sept observations ont été estimées supérieures à ce prix.
+
+cout2 <- subset(cout, cout$ClaimAmount <35000)
+hist(cout2$ClaimAmount)
+plot(cout2$ClaimAmount)
+```
+
+### Estimation d'une loi
+
+Dans notre étude sur la variable de sévérité ClaimAmount, nous allons essayer d'approcher la distribution de cette variable par une loi continue connue.
+
+Nous utiliserons la méthode du qqplot
+
+```{r}
+#Approche par une loi Gamma
 alpha = mean(cout$ClaimAmount)^2/var(cout$ClaimAmount)
 beta = mean(cout$ClaimAmount)/var(cout$ClaimAmount)
 qqplot (cout$ClaimAmount, qgamma ( ppoints (cout$ClaimAmount,3/8), shape =alpha, rate =beta),
         	xlab ="Prix des sinistres observés",
-        main ="Graphique des quantiles pour les prix des sinistres.")
+        main ="Graphique des quantiles pour les prix des sinistres (loi gamma).")
 abline (a=0,b=1, col ="red")
 ```
 
-La loi gamma semble très bien s'adapter à notre modèle
+La loi gamma semble très bien s'adapter à notre modèle. De plus, une divergence avec la loi est observée lorsque les valeurs sont supérieures à 35 000. Cela nous maintient dans l'idée d'étudier notre jeu de données aux montants inférieurs à 35000.
 
 ```{r}
 qqplot (cout$ClaimAmount, qnorm ( ppoints (cout$ClaimAmount,3/8), mean =mean(cout$ClaimAmount), sd =sqrt(var(cout$ClaimAmount))),
         	xlab ="Prix des sinistres observés",
-        main ="Graphique des quantiles pour les prix des sinistres.")
+        main ="Graphique des quantiles pour les prix des sinistres (loi normale).")
 abline (a=0,b=1, col ="red")
 ```
 
-### Test avec un modèle linéaire simple
-
-Après cette première erreur, nous avons essayé un modèle linéaire simple pour voir si l'erreur venait uniquement de start ou d'une autre chose triviale.
+La loi normale ne semble pas être très adaptée à notre modèle
 
 ```{r}
-lm(ClaimAmount ~ 1, data = cout, offset = Exposure)
+#Approche par la loi log normale
+fit_params <- fitdistr(cout2$ClaimAmount,"lognormal")
+qqplot (cout2$ClaimAmount, qlnorm ( ppoints (cout2$ClaimAmount,3/8), mean = fit_params$estimate['meanlog'], sd = fit_params$estimate['sdlog']),
+        	xlab ="Prix des sinistres observés",
+        main ="Graphique des quantiles pour les prix des sinistres (loi log normale).")
+abline (a=0,b=1, col ="red")
+```
+
+## Séparation en échantillon apprentissage et échantillon test
+
+```{r}
+perm <- sample(nrow(cout2),80/100*nrow(cout2))
+train <- cout2[perm,]
+test <- cout2[-perm,]
+
+```
+
+## Loi gamma
+
+```{r}
+
+gamma.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "inverse"),start =rep(0.01,28),na.action = na.exclude)
+summary(gamma.inv)
+```
+
+Il n'affiche pas de GLM. Essayons d'enlever les valeurs extrêmes
+
+```{r}
+gamma.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "log"))
+
+gamma.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "identity"))
+
+```
+
+Apparition d'un message d'erreur :
+
+"glm.fit : l'algorithme n'a pas convergé"
+
+```{r}
+gamma.log$converged
 ```
 
 ```{r}
+<<<<<<< HEAD
 lm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
 
 ```
@@ -112,9 +222,18 @@ test <- cout[-perm,]
 ```{r}
 #gamma.id <- glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, offset = log(Exposure), family = Gamma(link = "identity"))
 #summary(gamma.id)
+=======
+summary(gamma.log)
+summary(gamma.id)
+>>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
 ```
 
+Il y a ainsi peu de différence entre les critères d'AIC entre les différentes fonctions de lien
+
+### Both, forward and backward
+
 ```{r}
+<<<<<<< HEAD
 #estimation <- gamma.id$fitted.values
 #hist(estimation)
 ```
@@ -122,14 +241,172 @@ test <- cout[-perm,]
 ```{r}
 #prediction <- predict.glm(gamma.id, newdata = test, type = "response")
 #hist(prediction)
+=======
+mod0 <- glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "log"))
 ```
 
 ```{r}
-summary(cout$SocioCateg)
+modBoth = step(gamma.log, mod0, trace=F,direction = c('both'))
+summary(modBoth)
 ```
 
 ```{r}
+modBack = step(gamma.log, mod0, trace=F,direction = c('backward'))
+summary(modBack)
+```
 
+```{r}
+modFor = step(gamma.log, mod0, trace=F,direction = c('forward'))
+summary(modFor)
+```
+
+### Prediction
+
+```{r}
+estimation <- gamma.log$fitted.values
+hist(estimation)
+```
+
+```{r}
+prediction <- predict.glm(gamma.log, newdata = test, type = "response")
+hist(prediction)
+>>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
+```
+
+### RMSE
+
+```{r}
+RMSE_train <- sqrt(mean(modBoth$residuals^2))
+RMSE_train
+```
+
+## Loi Gaussienne
+
+### 1er Modele
+
+```{r}
+gauss.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
+summary(gauss.id)
+```
+
+Un systeme dont les variables interessantes sont bien:
+
+(BonusMalus, RiskArea12, ClaimNbResp, ClaimNbNonResp et Categ3)
+
+```{r}
+gauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
+summary(gauss.log)
+
+gauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "inverse"))
+summary(gauss.inv)
+```
+
+La fonction de lien log pour la loi gaussienne a des variables tres interessantes à prendre en compte
+
+(notamment tous les types d'accidents, les conducteurs âgés, BonusMalus, RiskArea12 et certaines classes sociales)
+
+### Both,backward and forward
+
+```{r}
+mod0 <- glm(ClaimAmount ~ 1, data = train, family = gaussian(link = "identity"))
+```
+
+```{r}
+modBoth = step(gauss.id, mod0, trace=F,direction = c('both'))
+summary(modBoth)
+```
+
+```{r}
+modBack = step(gauss.id, mod0, trace=F,direction = c('backward'))
+summary(modBack)
+```
+
+### Prediction
+
+```{r}
+estimation <- gauss.id$fitted.values
+hist(estimation)
+
+prediction <- predict.glm(gauss.id, newdata = test, type = "response")
+hist(prediction)
+```
+
+## Loi Gaussienne Inverse
+
+### 1er Modele
+
+```{r}
+invgauss.mu <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "1/mu^2"),start=rep(0.01,28))
+summary(invgauss.mu)
+```
+
+```{r}
+invgauss.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "identity"),na.action = na.exclude)
+
+invgauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "inverse"),na.action = na.exclude)
+
+invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),,na.action = na.exclude)
+```
+
+### Both, Backward and Forward
+
+### Prediction
+
+## Loi Log Normale
+
+### 1er Modele
+
+```{r}
+lognorm.id <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
+summary(lognorm.id)
+```
+
+```{r}
+lognorm.inv <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "inverse"))
+lognorm.log <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
+```
+
+```{r}
+summary(lognorm.inv)
+summary(lognorm.log)
+```
+
+### Both, Backward and Forward
+
+```{r}
+mod0 <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "identity"))
+```
+
+```{r}
+modBoth = step(lognorm.id, mod0, trace=F,direction = c('both'))
+summary(modBoth)
+```
+
+```{r}
+modBack = step(lognorm.id, mod0, trace=F,direction = c('backward'))
+summary(modBack)
+```
+
+```{r}
+modFor = step(lognorm.id, mod0, trace=F,direction = c('forward'))
+summary(modFor)
+```
+
+### Prediction
+
+```{r}
+estimation <- lognorm.id$fitted.values
+hist(estimation)
+
+prediction <- predict.glm(lognorm.id, newdata = test, type = "response")
+hist(prediction)
+```
+
+### RMSE
+
+```{r}
+RMSE_train <- sqrt(mean(modBoth$residuals^2))
+RMSE_train
 ```
 
 # GLM pour la variable fréquence
@@ -163,6 +440,11 @@ Les variables ClaimNbResp, ClaimNbNonResp, ClaimNbParking, ClaimNbFireTheft, Cla
 ```{r}
 #on veut reprendre les lignes où ClaimAmout pouvait aussi être nul
 data(freMPL5)
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
 ```
 
 ```{r}
@@ -239,7 +521,7 @@ summary(modBoth)
 summary(modBoth)
 ```
 
-## RMSE
+## RMSE (root mean squared error)
 
 ```{r}
 RMSE_train <- sqrt(mean(modBoth$residuals^2))
@@ -251,6 +533,13 @@ bin.log2 <- glm(ClaimInd ~ SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNon
 
 RMSE_test <- sqrt(mean(bin.log2$residuals^2))
 RMSE_test
+```
+
+## MAE (mean absolute error)
+
+```{r}
+MAE_train <- mean(abs(modBoth$residuals))
+MAE_train
 ```
 
 ## AUC, Courbe ROC
@@ -311,4 +600,36 @@ Ce modèle va considérer que 9,6% des non sinistrés aurait un sinistre
 
 ```{r}
 confusion.mat
+```
+
+## Cross Validation
+
+```{r}
+fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+
+fit <- train(ClaimInd ~ MariStat + Categ + VehUsage + HasKmLimit + 
+    ClaimNbResp + ClaimNbNonResp + ClaimNbParking + ClaimNbFireTheft + 
+    ClaimNbWindscreen + OutUseNb + RiskArea + BonusMalus + DrivAge_fact,
+    data = freMPL5.train, method = "glm", 
+    family = "binomial", trControl = fit.control)
+```
+
+```{r}
+invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),na.action = na.exclude)
+```
+
+```{r}
+summary(train$ClaimAmount)
+summary(train$Categ)
+summary(train$MariStat)
+summary(train$VehUsage)
+summary(train$HasKmLimit)
+summary(train$ClaimNbResp)
+summary(train$ClaimNbNonResp)
+summary(train$ClaimNbParking)
+summary(train$ClaimNbFireTheft)
+summary(train$ClaimNbWindscreen)
+summary(train$BonusMalus)
+summary(train$RiskArea)
+summary(train$DrivAge_fact)
 ```

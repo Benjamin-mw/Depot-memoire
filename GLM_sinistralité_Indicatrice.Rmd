@@ -15,6 +15,7 @@ library(reshape2) ; library(dplyr) ; library(GGally) ; library(corrplot) ; libra
 library(car) ; library(questionr) ;library(multcomp) ; library(dplyr) ; library(leaps)
 library(TeachingDemos) ; library(FactoMineR) ; library(factoextra) ; library(ROCR) ; library(plotROC)
 library(graphics)
+library(caret)
 
 #Import jeu de données
 data(freMPL5)
@@ -59,6 +60,10 @@ freMPL5$Risque[freMPL5$RiskArea == "4"] = 4
 freMPL5$Risque = factor(freMPL5$Risque)
 ```
 
+```{r}
+summary(freMPL5$Sinistres)
+```
+
 # Création d'un modèle linéaire généralisé
 
 ```{r}
@@ -74,9 +79,9 @@ test   <- freMPL5[!echantillon, ]
 
 L'objectif de cette étude est d'expliquer "ClaimInd" (représenter par la variable $Y$) grâce à $p$ variables explicatives que nous déterminerons.
 
-Le code ci-dessous permet de savoir que l'évènement rare est "l'assuré a eu un sinistre" Par conséquent, on affecte la valeur 1 à cet évènement et 0 sinon (comme cela est déjà codé).
+Le code ci-dessous permet de savoir que l'évènement rare est "l'assuré a eu un sinistre". Par conséquent, on affecte la valeur 1 à cet évènement et 0 sinon (comme cela est déjà codé).
 
-$Y$ est donc à valeurs dans $\text{{0;1}}$. La loi choisi pour cette modélisation est donc une loi de Bernouilli, avec comme fonction de lien canonique la fonction $logit$.
+$Y$ est donc à valeurs dans $\text{{0;1}}$. La loi choisie pour cette modélisation est donc une loi de Bernouilli, avec comme fonction de lien canonique la fonction $logit$.
 
 ```{r}
 Train_Contingence <- table(train$ClaimInd, train$ClaimInd)
@@ -107,12 +112,24 @@ $$
 avec $SCR(m)=||P_mY-Y||^2$ et $n$ le nombre d'observations. On choisit un modèle $[m]$ qui minimise l'$AIC$. Afin de déterminer le "meilleur" modèle pour notre étude, nous utiliserons la méthode "both". Cette dernière part de l'intercept et ajoute/enlève les variables une à une tout en comparant selon le critère $AIC$
 
 ```{r, message = FALSE, warning = FALSE}
+<<<<<<< HEAD
+mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = log))
+=======
 mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = logit))
+>>>>>>> fb843297622a8397faf861261bafbd879c988abd
 summary(mod0)
 ```
 
 ```{r}
+<<<<<<< HEAD
 modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
+=======
+<<<<<<< HEAD
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = log))
+=======
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
+>>>>>>> fb843297622a8397faf861261bafbd879c988abd
+>>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
 summary(modFull)
 ```
 
@@ -211,6 +228,10 @@ specificite <- vraisneg / (vraisneg + fauxpos)
 confusion.mat
 ```
 
+```{r}
+
+```
+
 #### Sur le jeu de données test
 
 ```{r}
@@ -228,6 +249,16 @@ precision <- vraispos / (vraispos + fauxpos)
 specificite <- vraisneg / (vraisneg + fauxpos)
 
 confusion.mat
+```
+
+## Cross Validation
+
+```{r}
+fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+
+fit <- train(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+    data = train, method = "glm", 
+    family = "binomial", trControl = fit.control)
 ```
 
 # Test avec une variable de Poisson

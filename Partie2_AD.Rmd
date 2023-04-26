@@ -45,6 +45,10 @@ data(freMPL5)
 summary(freMPL5)
 ```
 
+```{r}
+summary(freMPL5$SocioCateg)
+```
+
 On remarque que certaines variables sont numériques au lieu d'être considérées comme des facteurs. Nous allons donc les changer :
 
 ```{r}
@@ -264,6 +268,7 @@ ind.quant <- sapply(freMPL5, is.numeric)
 
 freMPL5.quant <- freMPL5[ ,ind.quant]
 freMPL5.qual <- freMPL5[ ,!ind.quant]
+
 ```
 
 ```{r}
@@ -275,7 +280,7 @@ summary(df)
 ```
 
 ```{r}
-k2 <- kmeans(freMPL5.quant, centers = 2, nstart = 25)
+k2 <- kmeans(freMPL5.quant, centers = 5, nstart = 25)
 str(k2)
 fviz_cluster(k2, data = freMPL5.quant)
 ```
@@ -294,18 +299,8 @@ gap_stat <- clusGap(freMPL5.quant, FUN = kmeans, nstart = 25,
                     K.max = 5, B = 50)
 ```
 
-## Etude des CSP
-
-Faisons un premier découpage des CSP en ne gardant que les 9 catégories comportant le plus d'assurés :
-
 ```{r}
-freMPL5$Categ = 0
-freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 1
-freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 2
-freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 3
-freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 4
-freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
-freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
-freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
-freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
+reMPL5.quant <- subset(freMPL5.quant, freMPL5$ClaimAmount > 0)
+
+k2 <- kmeans(freMPL5.quant, centers = 5, nstart = 25) str(k2) fviz_cluster(k2, data = freMPL5.quant)
 ```

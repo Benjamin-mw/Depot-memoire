@@ -279,7 +279,7 @@ summary(mod0_2)
 ```
 
 ```{r warning= FALSE}
-modFull_2 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "log"))
+modFull_2 <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+Risque+DrivAge_fact*Categ, data = train, family = poisson(link = "log"))
 summary(modFull_2)
 ```
 
@@ -287,8 +287,6 @@ summary(modFull_2)
 modBoth_2 = step(modFull_2, mod0_2, trace=F, direction = c('both'))
 summary(modBoth_2)
 ```
-
-Cela ne semble donc pas être un très bon modèle...
 
 ```{r}
 plot(modBoth_2)

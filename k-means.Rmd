@@ -52,28 +52,13 @@ La suite de notre étude ne portera donc que sur les classes :CSP1, 42, 46, 48, 
 
 ```
 
-```{r}
-#On importe la base de données qu'avec les bonnes CSP après sélection sur Excel
-data(freMPL5)
-freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
-write.csv(freMPL5, file="databrute.csv", row.names = FALSE)
-setwd("C:/Users/enceu/OneDrive/Bureau/Git_hub_Mémoire/Depot-memoire")
-data=read.csv("data_CSP.csv",header=TRUE,sep=";",fill=F)
-```
-
 ### I) K-Means avec les variables ClaimInd et ClaimAmount
 
 L'objectif est de constituer différents groupes d'individus à partir de leurs caractéristiques. Ces regroupement seront faits grâce à des similitudes partagées par des mêmes individus (à partir de calcul de distance : on se servira essentiellement de la distance euclidienne dans cette étude)
 
 Cette méthode sera utilisée pour deux variables quantitatives : Montant sinistre moyen par CSP, Fréquence de sinistres par CSP et Exposure moyen par CSP
 
-#### a) Etude des outliers
-
-```{r}
-boxplot(data$ClaimAmount[data$ClaimInd==1] ~ data$SocioCateg[data$ClaimInd==1], ylim=c(0,15000))
-```
-
-#### b) Clustering avec contrats regroupés par CSP
+#### a) Clustering avec contrats regroupés par CSP
 
 Dans la suite de cette section, on va regrouper, si possible, les 8 CSP restantes grâce à la méthode des k-means
 
@@ -98,7 +83,7 @@ Ce premier clustering nous permet de constituer 2 clusters parmi ces 8 classes :
 
 -   Cluster 2 : CSP 50, 55 et 60
 
-#### c) Clustering avec l'entierté des contrats
+#### b) Clustering avec l'entierté des contrats
 
 ```{r}
 data_2=read.csv("data_3.csv",header=TRUE,sep=";",fill=F)
@@ -191,7 +176,7 @@ Dans cette section, on effectue un k-means sur les variables ClaimAmount moyen p
 
 ```{r}
 
-data_R_1=read.csv("data_RiskArea_1.csv",header=TRUE,sep=";",fill=F,row.names=1)
+data_R_1=read.csv("data_R_1.csv",header=TRUE,sep=";",fill=F,row.names=1)
 
 #On centre chaque colonne de notre dataframe data afin de pouvoir procéder aux k-means 
 df_R_1=scale(data_R_1)
@@ -234,13 +219,13 @@ fviz_nbclust(data_R_3,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),
 km.res_R_3 <- kmeans(df_R_3, 2, nstart = 10)
 
 
-fviz_cluster(km.res_R_3, data = df_R_3, centroids = 3, repel = TRUE, ellipse.type = "norm")
+fviz_cluster(km.res_R_3, data = df_R_3, centroids = 2, repel = TRUE, ellipse.type = "norm")
 ```
 
 #### d) Variables explicatives quantitatives (tout)
 
 ```{r}
-data_R_4=read.csv("data_RiskArea_4.csv",header=TRUE,sep=";",fill=F,row.names=1)
+data_R_4=read.csv("data_R_4.csv",header=TRUE,sep=";",fill=F,row.names=1)
 
 #On centre chaque colonne de notre dataframe data afin de pouvoir procéder aux k-means 
 df_R_4=scale(data_R_4)

@@ -58,6 +58,8 @@ freMPL5$Risque[freMPL5$RiskArea == "10"] = 2
 freMPL5$Risque[freMPL5$RiskArea == "11"] = 3
 freMPL5$Risque[freMPL5$RiskArea == "4"] = 4
 freMPL5$Risque = factor(freMPL5$Risque)
+
+freMPL5$DrivAge2 = freMPL5$DrivAge**2
 ```
 
 ```{r}
@@ -348,6 +350,16 @@ On remarque que beaucoup de variables ont été enlevées ici pour maximiser l'A
 
 Utiliser `glm.nb`.
 
+```{r}
+modBN_0 <- glm.nb(Sinistres2 ~ 1, data = train)
+summary(modBN_0)
+```
+
+```{r}
+modBN_Full <- glm.nb(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train)
+summary(modBN_Full)
+```
+
 # Test avec une quasi-Poisson
 
 ```{r warning= FALSE}
@@ -419,7 +431,7 @@ Avec ces courbes, on remarque qu'on risque d'être en difficulté pour capter de
 
 ```{r}
 mod0_3 <- glm(Sinistres2 ~ 1, data = train3, family = poisson(link = "log"))
-summary(mod0_2)
+summary(mod0_3)
 ```
 
 ```{r}
@@ -478,6 +490,8 @@ On obtient encore des résultats qui ne sont pas particulièrement satisfaisants
 
 ```{r}
 inf4 = freMPL5[freMPL5$Sinistres <= 4,]
+nrow(inf4)
+nrow(freMPL5)
 ```
 
 ```{r}
@@ -509,7 +523,7 @@ On peut dire à peu près les mêmes choses que pour la partie \<=3.
 
 ```{r}
 mod0_4 <- glm(Sinistres2 ~ 1, data = train4, family = poisson(link = "log"))
-summary(mod0_2)
+summary(mod0_4)
 ```
 
 ```{r}
@@ -525,6 +539,16 @@ summary(modQuasiPoi_4)
 L'AIC n'est pas défini pour les quasi-Poisson sur R. Cependant, on remaque que les résidus sont plus importants sur la quasi-Poisson que sur la Poisson.
 
 Nous perdons ici en précision et performance sur cette modélisation. Nous n'allons même pas tenter de regarder ce que cela donne sur l'échantillon de test.
+
+```{r}
+modNBFull_4 <- glm.nb(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train4)
+summary(modNBFull_4)
+```
+
+```{r}
+modNB0_4 <- glm.nb(Sinistres2 ~ 1, data = train4)
+summary(modNB0_4)
+```
 
 #### Seulement avec les sinistres \>1
 

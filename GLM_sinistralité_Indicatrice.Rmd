@@ -37,15 +37,26 @@ freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), 
 
 #Découpage CSP
 freMPL5$Categ = 0
-freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 1
-freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 2
-freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 3
-freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 4
-freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
-freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
-freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
-freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
+freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 3
+freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 3
+freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 4
+freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 1
+freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 1
+freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 2
+freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 2
+freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 1
 freMPL5$Categ = factor(freMPL5$Categ)
+
+freMPL5$Risque = 0
+freMPL5$Risque[freMPL5$RiskArea == "5"] = 1
+freMPL5$Risque[freMPL5$RiskArea == "6"] = 1
+freMPL5$Risque[freMPL5$RiskArea == "7"] = 1
+freMPL5$Risque[freMPL5$RiskArea == "8"] = 1
+freMPL5$Risque[freMPL5$RiskArea == "9"] = 1
+freMPL5$Risque[freMPL5$RiskArea == "10"] = 2
+freMPL5$Risque[freMPL5$RiskArea == "11"] = 3
+freMPL5$Risque[freMPL5$RiskArea == "4"] = 4
+freMPL5$Risque = factor(freMPL5$Risque)
 ```
 
 # Création d'un modèle linéaire généralisé
@@ -101,7 +112,7 @@ summary(mod0)
 ```
 
 ```{r}
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
 summary(modFull)
 ```
 
@@ -178,8 +189,6 @@ df_roc <- prev_prob %>% mutate(obs=as.numeric(test$ClaimInd)) %>% gather(key=met
 ggplot(df_roc, aes(m=score, d=obs,color=methode))+ geom_roc()
 ```
 
-Les AUC obtenus sont supérieurs à 0,92. On a un très bon critère (très proche de 1).
-
 ### Table de confusion
 
 #### Sur le jeu de données train
@@ -239,7 +248,7 @@ summary(mod0_2)
 ```
 
 ```{r warning= FALSE}
-modFull_2 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "log"))
+modFull_2 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "log"))
 summary(modFull_2)
 ```
 
@@ -249,6 +258,10 @@ summary(modBoth_2)
 ```
 
 Cela ne semble donc pas être un très bon modèle...
+
+```{r}
+plot(modBoth_2)
+```
 
 ```{r}
 lmb = mean(freMPL5$Sinistres2)
@@ -275,8 +288,8 @@ summary(mod0_identité)
 ```
 
 ```{r}
-modFull_identité <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "identity"))
-summary(modFull_identité)
+#modFull_identité <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "identity"))
+#summary(modFull_identité)
 ```
 
 Il y a une erreur. Est-ce par rapport au fait qu'il ne pervient pas à trouver des valeurs pour les coefficients et donc que la méthode n'est pas convergente ?
@@ -291,7 +304,7 @@ summary(mod0_sqrt)
 ```
 
 ```{r}
-modFull_sqrt <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "sqrt"))
+modFull_sqrt <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = poisson(link = "sqrt"))
 summary(modFull_sqrt)
 ```
 
@@ -302,6 +315,10 @@ summary(modBoth_sqrt)
 
 On remarque que beaucoup de variables ont été enlevées ici pour maximiser l'AIC. Cependant, nous pouvons remarquer que l'AIC reste inférieur à celui obtenu avec le lien canonique log.
 
+# Test avec une binomiale négative ?
+
+Utiliser `glm.nb`.
+
 # Test avec une quasi-Poisson
 
 ```{r warning= FALSE}
@@ -310,7 +327,7 @@ summary(mod0_3)
 ```
 
 ```{r warning= FALSE}
-modFull_3 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = quasipoisson(link = "log"))
+modFull_3 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = quasipoisson(link = "log"))
 summary(modFull_3)
 ```
 
@@ -335,7 +352,12 @@ Ces quantiles pourront éventuellement nous aider à comprendre le pourcentage d
 
 ```{r}
 inf3 = freMPL5[freMPL5$Sinistres <= 3,]
+nrow(inf3)
+nrow(freMPL5)
+(nrow(freMPL5)-nrow(inf3))/nrow(freMPL5)
 ```
+
+On ne perd que 453 obersavtions avec ce procédé, ce qui représente moins de 1,8% des assurés.
 
 ```{r}
 lmb3 = mean(inf3$Sinistres2)
@@ -372,8 +394,12 @@ summary(mod0_2)
 ```
 
 ```{r}
-modFull_3 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train3, family = poisson(link = "log"))
+modFull_3 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train3, family = poisson(link = "log"))
 summary(modFull_3)
+```
+
+```{r}
+plot(modFull_3)
 ```
 
 ```{r}
@@ -458,7 +484,7 @@ summary(mod0_2)
 ```
 
 ```{r}
-modFull_4 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train4, family = poisson(link = "log"))
+modFull_4 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train4, family = poisson(link = "log"))
 summary(modFull_4)
 ```
 
@@ -520,7 +546,7 @@ test_1_7   <- coutInf7[!echantillonSup1Inf7, ]
 ```
 
 ```{r}
-mod_1_7 <- glm(Sinistres2 -1 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_1_7, family = poisson(link = "log"))
+mod_1_7 <- glm(Sinistres2 -1 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train_1_7, family = poisson(link = "log"))
 summary(mod_1_7)
 ```
 

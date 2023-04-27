@@ -1,0 +1,98 @@
+---
+title: "GLMTREEAMOUNT"
+output: html_document
+date: "2023-04-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("party")
+install.packages("partykit")
+```
+
+```{r}
+library(rpart)
+library(rpart.plot)
+library(sp)
+library(CASdatasets)
+library(party)
+library(partykit)
+```
+
+
+```{r}
+data(freMPL5)
+#enlever les valeurs négatives
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+#passer en variables catégorielles
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+#segmentation des tranches d'âge
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+#Découpage CSP
+freMPL5$Categ = 0
+freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 1
+freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 2
+freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 3
+freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 4
+freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
+freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
+freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
+freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
+freMPL5$Categ = factor(freMPL5$Categ)
+
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+                             ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+                                    ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+                                           ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+```
+
+
+```{r, error = TRUE}
+cout8 <- freMPL5[freMPL5$ClaimInd == 1,]
+```
+
+
+```{r}
+
+
+set.seed(123) 
+train.index <- sample(1:nrow(cout8), size=0.7*nrow(cout8), replace=FALSE)
+trainGLM.data <- cout8[train.index,]
+testGLM.data <- cout8[-train.index,]
+```
+
+```{r}
+
+
+glm_tree_lognormale <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data , maxdepth = 5, family = gaussian(link = "log"))
+plot(glm_tree_lognormale)
+
+
+```
+
+```{r}
+AIC(glm_tree_lognormale)
+BIC(glm_tree_lognormale)
+```
+
+```{r}
+predglmT <- predict(glm_tree_lognormale, newdata = testGLM.data)
+mse <- mean((predglmT - testGLM.data$ClaimAmount)^2)
+mse
+```
+
+
+```{r}
+#moyenne du montant des sinistres
+mean_pred <- mean(predglmT)
+mean_pred
+```

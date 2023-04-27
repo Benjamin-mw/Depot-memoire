@@ -1,0 +1,137 @@
+---
+title: "cartsev2"
+output: html_document
+date: "2023-04-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rpart)
+library(rpart.plot)
+library(sp)
+library(CASdatasets)
+library(party)
+library(partykit)
+```
+
+```{r}
+data(freMPL5)
+#enlever les valeurs négatives
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+#passer en variables catégorielles
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+#segmentation des tranches d'âge
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+#Découpage CSP
+freMPL5$Categ = 0
+freMPL5$Categ[freMPL5$SocioCateg == "CSP50"] = 1
+freMPL5$Categ[freMPL5$SocioCateg == "CSP55"] = 2
+freMPL5$Categ[freMPL5$SocioCateg == "CSP60"] = 3
+freMPL5$Categ[freMPL5$SocioCateg == "CSP1"] = 4
+freMPL5$Categ[freMPL5$SocioCateg == "CSP42"] = 5
+freMPL5$Categ[freMPL5$SocioCateg == "CSP46"] = 6
+freMPL5$Categ[freMPL5$SocioCateg == "CSP48"] = 7
+freMPL5$Categ[freMPL5$SocioCateg == "CSP66"] = 8
+freMPL5$Categ = factor(freMPL5$Categ)
+
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+                             ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+                                    ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+                                           ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+```
+
+```{r, error = TRUE}
+cout <- freMPL5[freMPL5$ClaimInd == 1,]
+```
+
+
+```{r}
+
+
+perm <- sample(nrow(cout),80/100*nrow(cout))
+cout.train <- cout[perm,]
+cout.test <- cout[-perm,]
+```
+
+
+```{r}
+#étape de construction de l'arbre maximal
+freMPL5.Tree.Amount <- rpart(ClaimAmount~MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+                      data=cout.train,
+                      control=rpart.control(xval = 10,minbucket = 1, maxdepth=10,cp=0))
+rpart.plot(freMPL5.Tree.Amount)
+
+
+```
+
+
+
+```{r}
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
+plotcp(freMPL5.Tree.Amount)
+printcp(freMPL5.Tree.Amount)
+```
+
+```{r}
+#étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
+freMPL5.Tree.prune.Amount=prune(freMPL5.Tree.Amount,cp= 1.1205e-02 )
+rpart.plot(freMPL5.Tree.prune.Amount)
+```
+
+```{r}
+pred <- predict(freMPL5.Tree.prune.Amount, newdata = cout.test)
+mse <- mean((pred - cout.test$ClaimAmount)^2)
+mse
+
+```
+
+```{r}
+#moyenne du montant des sinistres donnée par CART
+mean_pred <- mean(pred)
+mean_pred
+```
+
+```{r}
+#importance des variables dans l'arbre
+importance <- round(freMPL5.Tree.prune.Amount$variable.importance/sum(freMPL5.Tree.prune.Amount$variable.importance)*100, 2)
+importance
+```
+
+```{r}
+rsq.rpart(freMPL5.Tree.Amount)
+```
+
+```{r}
+n_nodes <- nrow(freMPL5.Tree.Amount$frame)
+cat("Nombre de noeuds dans l'arbre CART:", n_nodes, "\n")
+```
+```{r}
+predic <- predict(freMPL5.Tree.Amount, newdata = cout.test)
+mse <- mean((predic - cout.test$ClaimAmount)^2)
+mse
+
+```
+
+```{r}
+
+
+glm_tree_lognormale1 <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout.train, family = gaussian(link = "log"))
+plot(glm_tree_lognormale1)
+
+
+```
+
+
+```{r}
+predglmT2 <- predict(glm_tree_lognormale1, newdata = cout.test)
+mse <- mean((predglmT2 - cout.train$ClaimAmount)^2)
+mse
+```

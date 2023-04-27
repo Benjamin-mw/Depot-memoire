@@ -52,7 +52,29 @@ La suite de notre étude ne portera donc que sur les classes :CSP1, 42, 46, 48, 
 
 ```
 
+<<<<<<< HEAD
 ### I) K-Means avec les variables ClaimInd et ClaimAmount
+=======
+Importer chez Eudes
+
+```{r}
+#On importe la base de données qu'avec les bonnes CSP après sélection sur Excel
+data(freMPL5)
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+write.csv(freMPL5, file="databrute_1.csv", row.names = FALSE)
+setwd("C:/Users/enceu/OneDrive/Bureau/Git_hub_Mémoire/Depot-memoire")
+data=read.csv("databrute.csv",header=TRUE,sep=";",fill=F)
+```
+
+Importer chez Lucas
+
+```{r}
+setwd("C:/Users/60580/OneDrive/Documents/projet R/Depot-memoire")
+data=read.csv("databrute.csv",header=TRUE,sep=";",fill=F)
+```
+
+### I) K-Means
+>>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
 
 L'objectif est de constituer différents groupes d'individus à partir de leurs caractéristiques. Ces regroupement seront faits grâce à des similitudes partagées par des mêmes individus (à partir de calcul de distance : on se servira essentiellement de la distance euclidienne dans cette étude)
 
@@ -83,7 +105,53 @@ Ce premier clustering nous permet de constituer 2 clusters parmi ces 8 classes :
 
 -   Cluster 2 : CSP 50, 55 et 60
 
+<<<<<<< HEAD
 #### b) Clustering avec l'entierté des contrats
+=======
+<<<<<<< HEAD
+```{r}
+data1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
+df=scale(data1)
+#Etude du nombre de clusterings que l'on va considérer grâce à différents critères
+
+fviz_nbclust(data1,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),k.max=7)
+
+km.res <- kmeans(df, 3, nstart = 10)
+km.res
+
+
+fviz_cluster(km.res, data = df, centroids = 2, repel = TRUE, ellipse.type = "norm")
+```
+
+```{r}
+data1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
+df=scale(data1)
+#Etude du nombre de clusterings que l'on va considérer grâce à différents critères
+
+fviz_nbclust(data1,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),k.max=7)
+
+km.res <- kmeans(df, 4, nstart = 10)
+km.res
+
+
+fviz_cluster(km.res, data = df, centroids = 2, repel = TRUE, ellipse.type = "norm")
+```
+
+```{r}
+data1=read.csv("k_means.csv",header=TRUE,sep=";",fill=F,row.names=1)
+df=scale(data1)
+#Etude du nombre de clusterings que l'on va considérer grâce à différents critères
+
+fviz_nbclust(data1,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"),k.max=7)
+
+km.res <- kmeans(df, 5, nstart = 10)
+km.res
+
+
+fviz_cluster(km.res, data = df, centroids = 2, repel = TRUE, ellipse.type = "norm")
+=======
+## K-means (avec l'ensemble des données)
+>>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
 
 ```{r}
 data_2=read.csv("data_3.csv",header=TRUE,sep=";",fill=F)
@@ -147,7 +215,11 @@ fviz_nbclust(data_CSP_3,  FUNcluster = kmeans ,c("silhouette", "wss", "gap_stat"
 km.res_CSP_3 <- kmeans(df_CSP_3, 4, nstart = 10)
 
 
+<<<<<<< HEAD
 fviz_cluster(km.res_CSP_3, data = df_CSP_3, centroids = 4, repel = TRUE, ellipse.type = "norm")
+=======
+>>>>>>> fb843297622a8397faf861261bafbd879c988abd
+>>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
 ```
 
 Ce premier clustering nous permet de constituer 4 clusters parmi ces 8 classes :

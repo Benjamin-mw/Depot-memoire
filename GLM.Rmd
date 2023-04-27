@@ -346,8 +346,40 @@ gamma.log$converged
 ```
 
 ```{r}
+<<<<<<< HEAD
+lm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
+
+```
+
+Ce modèle est sûrement très mauvais mais il permet de voir que certaines choses fonctionnent.
+
+### Test pour voir les erreurs avec un modèle Gamma
+
+```{r, error = TRUE}
+glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma())
+```
+
+```{r, error = TRUE}
+glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure), family = Gamma(), start = rep(0, 49))
+```
+
+## Vrai modèle
+
+```{r}
+#freMPL5 <- subset(freMPL5, freMPL5$SocioCateg != "CSP30" & freMPL5$SocioCateg !="CSP45" & freMPL5$SocioCateg !="CSP63" & freMPL5$SocioCateg !="CSP61")
+
+perm <- sample(nrow(cout),80/100*nrow(cout))
+train <- cout[perm,]
+test <- cout[-perm,]
+```
+
+```{r}
+#gamma.id <- glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, offset = log(Exposure), family = Gamma(link = "identity"))
+#summary(gamma.id)
+=======
 summary(gamma.log)
 summary(gamma.id)
+>>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
 ```
 
 Il y a ainsi peu de différence entre les critères d'AIC entre les différentes fonctions de lien
@@ -355,6 +387,15 @@ Il y a ainsi peu de différence entre les critères d'AIC entre les différentes
 ### Both, forward and backward
 
 ```{r}
+<<<<<<< HEAD
+#estimation <- gamma.id$fitted.values
+#hist(estimation)
+```
+
+```{r}
+#prediction <- predict.glm(gamma.id, newdata = test, type = "response")
+#hist(prediction)
+=======
 mod0 <- glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "log"))
 ```
 
@@ -383,6 +424,7 @@ hist(estimation)
 ```{r}
 prediction <- predict.glm(gamma.log, newdata = test, type = "response")
 hist(prediction)
+>>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
 ```
 
 ### RMSE
@@ -611,18 +653,18 @@ freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), 
 ```
 
 ```{r}
-glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial(link = logit))
+#glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial(link = logit))
 ```
 
 ```{r}
-bin.prob <-glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial(link = probit) )
-summary(bin.prob)
+#bin.prob <-glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial(link = probit) )
+#summary(bin.prob)
 ```
 
 Le ratio "residual deviance/ degrés de liberté" est de 0.57190... qui est inférieur à 1, il n'y aurait pas de problème d'overfeating. Il ne serait pas nécessaire de passer par les quasi-lois mais faisons le quand même.
 
 ```{r}
-glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = quasibinomial(link = logit) )
+#glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = quasibinomial(link = logit) )
 ```
 
 Il y a ici encore plein de catégories socio-professionnelles à enlever ou regrouper.
@@ -641,20 +683,20 @@ summary(freMPL5.test$ClaimInd)
 ```
 
 ```{r}
-bin.log <- glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5.train, offset = Exposure, family = binomial(link = logit))
-summary(bin.log)
+#bin.log <- glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5.train, offset = Exposure, family = binomial(link = logit))
+#summary(bin.log)
 ```
 
 ```{r}
-prediction <- predict.glm(bin.log, newdata = freMPL5.test, type = "response")
-summary(prediction)
-hist(prediction)
+#prediction <- predict.glm(bin.log, newdata = freMPL5.test, type = "response")
+#summary(prediction)
+#hist(prediction)
 ```
 
 ```{r}
-estimation <- bin.log$fitted.values
-summary(estimation)
-hist(estimation)
+#estimation <- bin.log$fitted.values
+#summary(estimation)
+#hist(estimation)
 ```
 
 problème: dans SocioCateg, il y a CSP30 qui apparait dans test mais pas dans train

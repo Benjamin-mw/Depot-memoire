@@ -283,10 +283,14 @@ modFull_2 <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNo
 summary(modFull_2)
 ```
 
+Avec les intéractions entre DrivAge_fact et Categ, cela permet d'obtenir un meilleur critère d'AIC tout en conservant un temps de calcul cohérent.
+
 ```{r warning = FALSE}
 modBoth_2 = step(modFull_2, mod0_2, trace=F, direction = c('both'))
 summary(modBoth_2)
 ```
+
+Ce modèle obtenu par une méthode de pas n'est pas tellement amélioré mais c'est celui que nous conserverons.
 
 ```{r}
 plot(modBoth_2)
@@ -614,3 +618,55 @@ summary(modBoth_1_7)
 ```
 
 La méthode nous a enlevé presque toutes les variables. Donc nous n'allons clairement pas choisir cette modélisation.
+
+# Etude des résidus
+
+A partir des différentes modélisations ci-dessus et par une logique de sélection que nous expliciterons plus en profondeur dans le rendu écrit (LateX) du mémoire, nous allons conserver le modèle obtenu par un GLM de Poisson sur toutes les observations et les interactions. Nous allons donc effectuer une étude des résidus pour vérifier que nos données collent bien aux hypothèses du modèle.
+
+```{r}
+residus = resid(modBoth_2)
+```
+
+## Visualisation des résidus
+
+```{r}
+plot(modBoth_2$fitted.values, residus, xlab = "Valeurs ajustées", ylab="Résidus", main = "Graphique en nuage de points des résidus par rapport aux valeurs ajustées")
+plot(residus, type="h", ylab="Résidus standardisés", main = "Graphique en barres des résidus standardisés")
+plot(resid(modBoth_2, type = "pearson"),type = "h", ylab="Résidus de Pearson", main="Graphique en barres des résidus de Pearson")
+hist(residus)
+```
+
+## Vérification Résidus\~Poisson
+
+Plusieurs tests existent pour vérifier si des variables aléatoires suivent une loi de Poisson. Nous allonc ici utiliser le test de Kolmogorov-Smirnov.
+
+```{r}
+#test de Kolmogorov-Smirnov
+z = rpois(200, lambda = mean(modFull_2$residuals))
+ks.test(residus, z)
+```
+
+Cela semble dire que les résidus ne suivent pas la loi de Poisson de paramètre la moyenne des résidus.
+
+Cela pourrait éventuellement être dû à une moyenne des résidus trop élevée à cause de certaines observations...
+
+Réalisons un test de Poisson :
+
+```{r}
+sum(modBoth_2$residuals<0)
+sum(modBoth_2$residuals>=0)
+```
+
+```{r}
+poisson.test(modBoth_2$residuals, conf.level = 0.95)
+```
+
+## Vérification pour une éventuelle surdispersion
+
+```{r}
+variance_obs = var(residus)
+variance_att = mean(modBoth_2$fitted.values)
+(rapport_variance = variance_obs/variance_att)
+```
+
+Alors, on a ici une surdispersion. Cela est clairement dû aux quelques valeurs extrêmes.

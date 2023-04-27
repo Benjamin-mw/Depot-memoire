@@ -160,9 +160,10 @@ abline (a=0,b=1, col ="red")
 ## Séparation en échantillon apprentissage et échantillon test
 
 ```{r}
-perm <- sample(nrow(cout2),80/100*nrow(cout2))
-train <- cout2[perm,]
-test <- cout2[-perm,]
+cout3 <- subset(cout, cout$ClaimAmount <20000)
+perm <- sample(nrow(cout3),80/100*nrow(cout3))
+train <- cout3[perm,]
+test <- cout3[-perm,]
 
 ```
 
@@ -192,8 +193,8 @@ gamma.log$converged
 ```
 
 ```{r}
-<<<<<<< HEAD
-lm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
+
+glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
 
 ```
 
@@ -222,10 +223,10 @@ test <- cout[-perm,]
 ```{r}
 #gamma.id <- glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, offset = log(Exposure), family = Gamma(link = "identity"))
 #summary(gamma.id)
-=======
+
 summary(gamma.log)
 summary(gamma.id)
->>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
+
 ```
 
 Il y a ainsi peu de différence entre les critères d'AIC entre les différentes fonctions de lien
@@ -233,7 +234,6 @@ Il y a ainsi peu de différence entre les critères d'AIC entre les différentes
 ### Both, forward and backward
 
 ```{r}
-<<<<<<< HEAD
 #estimation <- gamma.id$fitted.values
 #hist(estimation)
 ```
@@ -241,7 +241,6 @@ Il y a ainsi peu de différence entre les critères d'AIC entre les différentes
 ```{r}
 #prediction <- predict.glm(gamma.id, newdata = test, type = "response")
 #hist(prediction)
-=======
 mod0 <- glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "log"))
 ```
 
@@ -270,7 +269,7 @@ hist(estimation)
 ```{r}
 prediction <- predict.glm(gamma.log, newdata = test, type = "response")
 hist(prediction)
->>>>>>> 532d41423f63fe3b21a31881488bc68bc88132ed
+
 ```
 
 ### RMSE
@@ -362,6 +361,10 @@ summary(lognorm.id)
 ```
 
 ```{r}
+summary(lognorm.id)
+```
+
+```{r}
 lognorm.inv <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "inverse"))
 lognorm.log <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
 ```
@@ -375,6 +378,7 @@ summary(lognorm.log)
 
 ```{r}
 mod0 <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "identity"))
+summary(mod0)
 ```
 
 ```{r}
@@ -615,7 +619,7 @@ fit <- train(ClaimInd ~ MariStat + Categ + VehUsage + HasKmLimit +
 ```
 
 ```{r}
-invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),na.action = na.exclude)
+invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),start=rep(0.01,28))
 ```
 
 ```{r}

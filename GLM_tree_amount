@@ -57,6 +57,7 @@ freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 
 ```{r, error = TRUE}
 cout8 <- freMPL5[freMPL5$ClaimInd == 1,]
+cout8 <- subset(cout8, cout8$ClaimAmount <35000)
 ```
 
 

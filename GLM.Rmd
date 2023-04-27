@@ -169,9 +169,9 @@ test <- cout3[-perm,]
 
 ## Loi gamma
 
-### I) Etude des outliers 
+### I) Etude des outliers
 
-Nous avons commencé à enlever des valeurs extrêmes en limitant le domaine d'étude au sinistre de moins de 25000€. Affinons cette recherche grâce à d'autres méthodes mises à notre disposition.
+Nous avons commencé à enlever des valeurs extrêmes en limitant le domaine d'étude aux sinistres de montant inférieur à 25000€. Affinons cette recherche grâce à d'autres méthodes mises à notre disposition.
 
 #### a) Méthode d'Hampel
 
@@ -525,7 +525,7 @@ invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp
 
 ### I) Modeles avec étude des outliers
 
-#### a) Méthode Tukey 
+#### a) Méthode Tukey
 
 ```{r}
 lognorm.id_Tukey <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Tukey, family = gaussian(link = "identity"))

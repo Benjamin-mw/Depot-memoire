@@ -113,24 +113,25 @@ $$
 
 avec $SCR(m)=||P_mY-Y||^2$ et $n$ le nombre d'observations. On choisit un modèle $[m]$ qui minimise l'$AIC$. Afin de déterminer le "meilleur" modèle pour notre étude, nous utiliserons la méthode "both". Cette dernière part de l'intercept et ajoute/enlève les variables une à une tout en comparant selon le critère $AIC$
 
+### Lien log
+
 ```{r, message = FALSE, warning = FALSE}
 
 mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = log))
-
-mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = logit))
-
 summary(mod0)
 ```
 
 ```{r}
+2*as.numeric(logLik(mod0))
+```
 
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
-
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = log))
-
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
-
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = log))
 summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
 ```
 
 ```{r}
@@ -138,7 +139,65 @@ modBoth = step(modFull, mod0, trace=F,direction = c('both'))
 summary(modBoth)
 ```
 
+```{r}
+2*as.numeric(logLik(modBoth))
+```
+
 Grâce à cette méthode nous obtenons un candidat pour notre modélisation.
+
+### Lien logit
+
+```{r}
+mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = logit))
+summary(mod0)
+```
+
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
+summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
+```
+
+### Lien probit
+
+```{r}
+mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = "probit"))
+summary(mod0)
+```
+
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = probit))
+summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
+```
+
+### Lien cauchit
+
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = cauchit))
+summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
+```
+
+### Lien cloglog
+
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = cloglog))
+summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
+```
 
 ## Etude de potentiels outliers
 
@@ -278,6 +337,10 @@ mod0_2 <- glm(Sinistres2 ~ 1, data = train, family = poisson(link = "log"))
 summary(mod0_2)
 ```
 
+```{r}
+-2*as.numeric(logLik(modBoth_2))
+```
+
 ```{r warning= FALSE}
 modFull_2 <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+Risque+DrivAge_fact*Categ, data = train, family = poisson(link = "log"))
 summary(modFull_2)
@@ -355,6 +418,10 @@ Utiliser `glm.nb`.
 ```{r}
 modBN_0 <- glm.nb(Sinistres2 ~ 1, data = train)
 summary(modBN_0)
+```
+
+```{r}
+-2*as.numeric(logLik(modBN_0))
 ```
 
 ```{r}

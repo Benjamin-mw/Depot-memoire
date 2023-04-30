@@ -166,7 +166,6 @@ set.seed(123)
 perm <- sample(nrow(cout3),80/100*nrow(cout3))
 train <- cout3[perm,]
 test <- cout3[-perm,]
-
 ```
 
 ## Loi gamma
@@ -374,6 +373,10 @@ gamma.log$converged
 ```
 
 ```{r}
+summary(glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "log")))
+```
+
+```{r}
 
 glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
 
@@ -393,31 +396,7 @@ glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNon
 
 ## Vrai modèle
 
-```{r}
-#freMPL5 <- subset(freMPL5, freMPL5$SocioCateg != "CSP30" & freMPL5$SocioCateg !="CSP45" & freMPL5$SocioCateg !="CSP63" & freMPL5$SocioCateg !="CSP61")
-
-perm <- sample(nrow(cout),80/100*nrow(cout))
-train <- cout[perm,]
-test <- cout[-perm,]
-```
-
-```{r}
-#gamma.id <- glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, offset = log(Exposure), family = Gamma(link = "identity"))
-#summary(gamma.id)
-
-summary(gamma.log)
-summary(gamma.id)
-
-```
-
-Il y a ainsi peu de différence entre les critères d'AIC entre les différentes fonctions de lien
-
-### Both, forward and backward
-
-```{r}
-#estimation <- gamma.id$fitted.values
-#hist(estimation)
-```
+### Both, forward and backward 
 
 ```{r}
 #prediction <- predict.glm(gamma.id, newdata = test, type = "response")
@@ -443,20 +422,23 @@ summary(modFor)
 ### Prediction
 
 ```{r}
+estimation <- gamma.log_Hampel$fitted.values
+hist(estimation)
 estimation <- gamma.log$fitted.values
 hist(estimation)
 ```
 
 ```{r}
+prediction <- predict.glm(gamma.log_Hampel, newdata = test, type = "response")
+hist(prediction)
 prediction <- predict.glm(gamma.log, newdata = test, type = "response")
 hist(prediction)
-
 ```
 
 ### RMSE
 
 ```{r}
-RMSE_train <- sqrt(mean(modBoth$residuals^2))
+RMSE_train <- sqrt(mean(gamma.log$residuals^2))
 RMSE_train
 ```
 
@@ -671,231 +653,11 @@ hist(prediction)
 ### RMSE
 
 ```{r}
-RMSE_train <- sqrt(mean(modBoth$residuals^2))
-RMSE_train
-```
-
-# GLM pour la variable fréquence
-
-On remarque que la variable à étudier vaut uniquement 0 ou 1 (indique si l'assuré a eu un sinistre ou non). Nous allons donc dans un premier temps la modéliser par une loi de Bernoulli. Cette fois-ci, on prend le jeu de données complet (pas uniquement les assurés ayant eu des sinistres évidemment, contrairement à la partie précédente).
-
-Habituellement, on utilise une approche fréquence-sévérité où la fréquence est le nombre d'accidents que l'assuré a obtenu. Cependant, on aura ici que la fréquence est soit 1, soit 0 selon le fait qu'il ait eu un sinistre ou pas.
-
-Nous aurons donc la formule suivante :
-
-$$
-E[X_i]=E[F_i] \cdot E[B_i]
-$$
-
-avec $B_i$ la variable de coût moyen et $F_i$ la variable de fréquence qui sera une $Ber(q_i)$ donc
-
-$$
-E[F_i] = q_i
-$$
-
-d'où
-
-$$
-E[X_i]=q_i \cdot E[B_i]
-$$
-
-**Remarque :**
-
-Les variables ClaimNbResp, ClaimNbNonResp, ClaimNbParking, ClaimNbFireTheft, ClaimNbWindscreen, OutUseNb traitent des sinistres passés durant les 4 années précédentes. Ils permettront peut-être de déterminer si l'assuré a des risques d'avoir de nouveau ce genre de sinistres qui sont plus ou moins coûteux selon leur classification.
-
-```{r}
-#on veut reprendre les lignes où ClaimAmout pouvait aussi être nul
-data(freMPL5)
-freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
-freMPL5$RiskArea <- factor(freMPL5$RiskArea)
-freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
-
-freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
-```
-
-```{r}
-#glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial(link = logit))
-```
-
-```{r}
-#bin.prob <-glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = binomial(link = probit) )
-#summary(bin.prob)
-```
-
-Le ratio "residual deviance/ degrés de liberté" est de 0.57190... qui est inférieur à 1, il n'y aurait pas de problème d'overfeating. Il ne serait pas nécessaire de passer par les quasi-lois mais faisons le quand même.
-
-```{r}
-#glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5, offset = Exposure, family = quasibinomial(link = logit) )
-```
-
-Il y a ici encore plein de catégories socio-professionnelles à enlever ou regrouper.
-
-```{r}
-freMPL5 <- subset(freMPL5, freMPL5$SocioCateg != "CSP30" & freMPL5$SocioCateg !="CSP45" & freMPL5$SocioCateg !="CSP63" & freMPL5$SocioCateg !="CSP61")
-
-perm <- sample(nrow(freMPL5),80/100*nrow(freMPL5))
-freMPL5.train <- freMPL5[perm,]
-freMPL5.test <- freMPL5[-perm,]
-```
-
-```{r}
-summary(freMPL5.train$ClaimInd)
-summary(freMPL5.test$ClaimInd)
-```
-
-```{r}
-#bin.log <- glm(ClaimInd ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = freMPL5.train, offset = Exposure, family = binomial(link = logit))
-#summary(bin.log)
-```
-
-```{r}
-#prediction <- predict.glm(bin.log, newdata = freMPL5.test, type = "response")
-#summary(prediction)
-#hist(prediction)
-```
-
-```{r}
-#estimation <- bin.log$fitted.values
-#summary(estimation)
-#hist(estimation)
-```
-
-problème: dans SocioCateg, il y a CSP30 qui apparait dans test mais pas dans train
-
-## Methode backward, forward, both
-
-```{r}
-mod0 <- glm(ClaimInd ~ 1, data = freMPL5.train, offset = Exposure, family = binomial(link = logit))
-```
-
-```{r}
-modFor=step(bin.log, mod0, trace=F,direction = c('forward'))
-summary(modFor)
-```
-
-```{r}
-modBack=step(bin.log, mod0, trace=F,direction = c('backward'))
-summary(modBack)
-```
-
-```{r}
-modBoth=step(bin.log, mod0, trace=F,direction = c('both'))
-summary(modBoth)
-```
-
-```{r}
-summary(modBoth)
-```
-
-## RMSE (root mean squared error)
-
-```{r}
-RMSE_train <- sqrt(mean(modBoth$residuals^2))
+RMSE_train <- sqrt(mean(lognorm.id$residuals^2))
 RMSE_train
 ```
 
 ```{r}
-bin.log2 <- glm(ClaimInd ~ SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+BonusMalus, data = freMPL5.test, offset = Exposure, family = binomial(link = logit))
-
-RMSE_test <- sqrt(mean(bin.log2$residuals^2))
-RMSE_test
-```
-
-## MAE (mean absolute error)
-
-```{r}
-MAE_train <- mean(abs(modBoth$residuals))
-MAE_train
-```
-
-## AUC, Courbe ROC
-
-### Sur l'échantillon train
-
-```{r}
-pred=prediction(bin.log$fitted.values, freMPL5.train$ClaimInd)
-perf=performance(pred,"tpr", "fpr")
-
-auc_ROCR <- performance(pred, measure = "auc")
-(auc_ROCR <- round(auc_ROCR@y.values[[1]],3) )
-```
-
-### Sur l'échantillon test
-
-```{r}
-prev_step <- predict(modBoth,newdata=freMPL5.test,type="response")
-prev_prob <- data.frame(complet=predict(bin.log,newdata=freMPL5.test, type="response"),step=predict(modBoth,newdata=freMPL5.test,type="response"))
-head(round(prev_prob,3), n=3)
-```
-
-```{r}
-prev_class <- apply(prev_prob>0.5,2,factor,labels=1)
-head(prev_class, n=3)
-```
-
-```{r}
-mean(as.factor(prev_class[,1])==freMPL5.test$ClaimInd)
-```
-
-```{r}
-mean(as.factor(prev_class[,2])==freMPL5.test$ClaimInd)
-```
-
-## Matrice de confusion
-
-```{r}
-score <- ifelse(predict(bin.log,freMPL5.test,type="response") >.3, "sinistre","sans sinistre")
-confusion.mat = table(freMPL5.test$ClaimInd, score)  
-fauxneg = confusion.mat[2,1]
-fauxpos = confusion.mat[1,2]
-vraisneg = confusion.mat[1,1]
-vraispos = confusion.mat[2,2]
-(txerr = (fauxneg+fauxpos) / (fauxneg+fauxpos+vraisneg+vraispos))
-```
-
-taux d'erreur de 10% environ
-
-```{r}
-sensibilite <- vraispos / (vraispos + fauxneg)   
-precision <- vraispos / (vraispos + fauxpos) 
-specificite <- vraisneg / (vraisneg + fauxpos)
-(danger <- fauxneg / (fauxneg+vraisneg))
-```
-
-Ce modèle va considérer que 9,6% des non sinistrés aurait un sinistre
-
-```{r}
-confusion.mat
-```
-
-## Cross Validation
-
-```{r}
-fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
-
-fit <- train(ClaimInd ~ MariStat + Categ + VehUsage + HasKmLimit + 
-    ClaimNbResp + ClaimNbNonResp + ClaimNbParking + ClaimNbFireTheft + 
-    ClaimNbWindscreen + OutUseNb + RiskArea + BonusMalus + DrivAge_fact,
-    data = freMPL5.train, method = "glm", 
-    family = "binomial", trControl = fit.control)
-```
-
-```{r}
-invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),start=rep(0.01,28))
-```
-
-```{r}
-summary(train$ClaimAmount)
-summary(train$Categ)
-summary(train$MariStat)
-summary(train$VehUsage)
-summary(train$HasKmLimit)
-summary(train$ClaimNbResp)
-summary(train$ClaimNbNonResp)
-summary(train$ClaimNbParking)
-summary(train$ClaimNbFireTheft)
-summary(train$ClaimNbWindscreen)
-summary(train$BonusMalus)
-summary(train$RiskArea)
-summary(train$DrivAge_fact)
+library(data.table)
+data.final <-copy(train)
 ```

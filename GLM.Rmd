@@ -160,6 +160,7 @@ abline (a=0,b=1, col ="red")
 ## Séparation en échantillon apprentissage et échantillon test
 
 ```{r}
+set.seed(123)
 cout3 <- subset(cout, cout$ClaimAmount <20000)
 set.seed(123)
 perm <- sample(nrow(cout3),80/100*nrow(cout3))
@@ -172,7 +173,7 @@ test <- cout3[-perm,]
 
 ### I) Etude des outliers
 
-Nous avons commencé à enlever des valeurs extrêmes en limitant le domaine d'étude aux sinistres de montant inférieur à 25000€. Affinons cette recherche grâce à d'autres méthodes mises à notre disposition.
+Nous avons commencé à enlever des valeurs extrêmes en limitant le domaine d'étude aux sinistres de montant inférieur à 20000€. Affinons cette recherche grâce à d'autres méthodes mises à notre disposition.
 
 #### a) Méthode d'Hampel
 
@@ -303,7 +304,9 @@ Effectuons des GLM sur ces données
 ```{r}
 gamma.log_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Tukey, family = Gamma(link = "log"))
 summary(gamma.log_Tukey)
+```
 
+```{r}
 gamma.id_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Tukey, family = Gamma(link = "identity"))
 summary(gamma.id_Tukey)
 ```
@@ -320,7 +323,30 @@ modBoth_Tukey = step(gamma.log_Tukey, mod0_Tukey, trace=F,direction = c('both'))
 summary(modBoth_Tukey)
 ```
 
-### II) GLM Lucas sans étude d'outliers
+### II) Modèle gamma.log_Tukey avec intéractions
+
+```{r}
+#On trace la matrice de corrélation des variables quantitatives
+x <- train_Tukey[, c(1,2,9,11,12,13,14,15,16,17,19)]
+corrplot(round(cor(x),2),method="ellipse")
+
+```
+
+```{r}
+gamma.log_Tukey_1 <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea+MariStat:ClaimNbResp 
++RiskArea*MariStat
+,data = train_Tukey, family = Gamma(link = "log"))
+summary(gamma.log_Tukey_1)
+```
+
+```{r}
+summary(mod0_Tukey)
+
+modBoth_Tukey_1 = step(gamma.log_Tukey_1, mod0_Tukey, trace=F,direction = c('both'))
+summary(modBoth_Tukey_1)
+```
+
+### III) GLM Lucas sans étude d'outliers
 
 ```{r}
 
@@ -549,10 +575,40 @@ summary(lognorm.id_Hampel_Tukey)
 
 Les résultats semblent moins concluant que pour le modèle sans étude d'outliers
 
+### II) Modèles avec intéractions
+
+#### a) lien identité
+
+```{r}
+lognorm.id_Tukey_1 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea + RiskArea*MariStat + MariStat*ClaimNbResp, data = train_Tukey, family = gaussian(link = "identity"))
+summary(lognorm.id_Tukey_1)
+```
+
+```{r}
+mod0_lognorm_id_1 <- glm(log(ClaimAmount) ~ 1, data = train_Tukey, family = gaussian(link = "identity"))
+modBoth_lognorm_id_1 = step(lognorm.id_Tukey_1, mod0, trace=F,direction = c('both'))
+summary(mod0_lognorm_id_1)
+summary(modBoth_lognorm_id_1)
+```
+
+#### b) lien inverse
+
+```{r}
+lognorm.inv_Tukey_1 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea + RiskArea*MariStat + MariStat*ClaimNbResp, data = train_Tukey, family = gaussian(link = "inverse"))
+summary(lognorm.inv_Tukey_1)
+```
+
+```{r}
+mod0_lognorm_inv_1 <- glm(log(ClaimAmount) ~ 1, data = train_Tukey, family = gaussian(link = "inverse"))
+modBoth_lognorm_inv_1 = step(lognorm.inv_Tukey_1, mod0, trace=F,direction = c('both'))
+summary(mod0_lognorm_inv_1)
+summary(modBoth_lognorm_inv_1)
+```
+
 ### II) Modele Lucas
 
 ```{r}
-lognorm.id <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
+lognorm.id <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea + RiskArea*MariStat + MariStat*ClaimNbResp, data = train, family = gaussian(link = "identity"))
 summary(lognorm.id)
 ```
 
@@ -583,13 +639,13 @@ summary(lognorm.log)
 ### Both, Backward and Forward
 
 ```{r}
-mod0 <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "identity"))
-summary(mod0)
+mod0_lognorm_id_0 <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "identity"))
+summary(mod0_lognorm_id_0)
 ```
 
 ```{r}
-modBoth = step(lognorm.id, mod0, trace=F,direction = c('both'))
-summary(modBoth)
+modBoth_lognorm_id_0 = step(lognorm.id, mod0, trace=F,direction = c('both'))
+summary(modBoth_lognorm_id_0)
 ```
 
 ```{r}

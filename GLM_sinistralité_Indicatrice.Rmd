@@ -113,24 +113,25 @@ $$
 
 avec $SCR(m)=||P_mY-Y||^2$ et $n$ le nombre d'observations. On choisit un modèle $[m]$ qui minimise l'$AIC$. Afin de déterminer le "meilleur" modèle pour notre étude, nous utiliserons la méthode "both". Cette dernière part de l'intercept et ajoute/enlève les variables une à une tout en comparant selon le critère $AIC$
 
+### Lien log
+
 ```{r, message = FALSE, warning = FALSE}
 
 mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = log))
-
-mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = logit))
-
 summary(mod0)
 ```
 
 ```{r}
+2*as.numeric(logLik(mod0))
+```
 
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
-
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = log))
-
-modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = binomial(link = logit))
-
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact+Categ, data = train, family = binomial(link = log))
 summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
 ```
 
 ```{r}
@@ -138,7 +139,70 @@ modBoth = step(modFull, mod0, trace=F,direction = c('both'))
 summary(modBoth)
 ```
 
+```{r}
+2*as.numeric(logLik(modBoth))
+```
+
 Grâce à cette méthode nous obtenons un candidat pour notre modélisation.
+
+### Lien logit
+
+```{r}
+mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = logit))
+summary(mod0)
+```
+
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+Categ*DrivAge_fact, data = train, family = binomial(link = logit))
+summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
+```
+
+```{r}
+modBoth_Bin <- step(modFull, mod0, trace = F, direction = c('both'))
+summary(modBoth_Bin)
+```
+
+### Lien probit
+
+```{r}
+mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = "probit"))
+summary(mod0)
+```
+
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = probit))
+summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
+```
+
+### Lien cauchit
+
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = cauchit))
+summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
+```
+
+### Lien cloglog
+
+```{r}
+modFull <- glm(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train, family = binomial(link = cloglog))
+summary(modFull)
+```
+
+```{r}
+2*as.numeric(logLik(modFull))
+```
 
 ## Etude de potentiels outliers
 
@@ -278,7 +342,11 @@ mod0_2 <- glm(Sinistres2 ~ 1, data = train, family = poisson(link = "log"))
 summary(mod0_2)
 ```
 
-```{r warning= FALSE}
+```{r}
+-2*as.numeric(logLik(modBoth_2))
+```
+
+```{r}
 modFull_2 <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+Risque+DrivAge_fact*Categ, data = train, family = poisson(link = "log"))
 summary(modFull_2)
 ```
@@ -355,6 +423,10 @@ Utiliser `glm.nb`.
 ```{r}
 modBN_0 <- glm.nb(Sinistres2 ~ 1, data = train)
 summary(modBN_0)
+```
+
+```{r}
+-2*as.numeric(logLik(modBN_0))
 ```
 
 ```{r}
@@ -633,17 +705,19 @@ residus = resid(modBoth_2)
 plot(modBoth_2$fitted.values, residus, xlab = "Valeurs ajustées", ylab="Résidus", main = "Graphique en nuage de points des résidus par rapport aux valeurs ajustées")
 plot(residus, type="h", ylab="Résidus standardisés", main = "Graphique en barres des résidus standardisés")
 plot(resid(modBoth_2, type = "pearson"),type = "h", ylab="Résidus de Pearson", main="Graphique en barres des résidus de Pearson")
-hist(residus)
+hist(residus, nclass=1000, xlim=c(-5,5))
 ```
 
-## Vérification Résidus\~Poisson
+Avec l'histogramme des résidus, on peut bien voir que le modèle a tendance à surévaluer le nombre de sinistres car les valeurs importantes de l'échantillon de données biaisent la prédiction.
+
+## Vérification Résidus\~Normale
 
 Plusieurs tests existent pour vérifier si des variables aléatoires suivent une loi de Poisson. Nous allonc ici utiliser le test de Kolmogorov-Smirnov.
 
 ```{r}
 #test de Kolmogorov-Smirnov
-z = rpois(200, lambda = mean(modFull_2$residuals))
-ks.test(residus, z)
+z = rnorm(200, mean = mean(residus), sd=sqrt(var(residus)))
+ks.test(residus,z)
 ```
 
 Cela semble dire que les résidus ne suivent pas la loi de Poisson de paramètre la moyenne des résidus.
@@ -658,7 +732,8 @@ sum(modBoth_2$residuals>=0)
 ```
 
 ```{r}
-poisson.test(modBoth_2$residuals, conf.level = 0.95)
+hist(residus, nclass = 100)
+hist(residus, nclass = 500, xlim = c(-5,5))
 ```
 
 ## Vérification pour une éventuelle surdispersion
@@ -670,3 +745,42 @@ variance_att = mean(modBoth_2$fitted.values)
 ```
 
 Alors, on a ici une surdispersion. Cela est clairement dû aux quelques valeurs extrêmes.
+
+# Etude des outliers
+
+Calculons dans un premier temps les résidus de Pearson
+
+```{r}
+inf <- influence.measures(modBoth_2)
+pearson_resid <- inf$infmat
+```
+
+```{r}
+cooksd <- cooks.distance(modBoth_2)
+
+sample_size <- nrow(train)
+plot(cooksd, pch="*", cex=2, main="Influential Obs by Cooks distance")  # plot cook's distance
+abline(h = 4/sample_size, col="red")  # add cutoff line
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4/sample_size, names(cooksd),""), col="red")  # add labels
+```
+
+Voici un moyen classque de trouver et retirer les outliers.
+
+```{r}
+outliers=as.numeric(names(cooksd)[(cooksd > (4/length(train)))])
+
+fin=length(outliers) #On pourrait ici modifier pour changer le nombre d'outliers à retirer du data d'entrainement.
+outliers=as.numeric(names(sort(cooksd, decreasing = TRUE)[1:fin]))
+
+
+train_sansoutliers <- train[-c(outliers), ]
+
+modFull_Outliers <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+Risque+DrivAge_fact*Categ, data = train_sansoutliers, family = poisson(link = "log"))
+summary(modFull_Outliers)
+```
+
+```{r}
+summary(modFull_2)
+```
+
+Ici, en retirant les 5 outliers, on reduit l'AIC de 4 unités. Ce n'est pas énorme mais nous conserverons ce modèle.

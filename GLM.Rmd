@@ -161,6 +161,7 @@ abline (a=0,b=1, col ="red")
 
 ```{r}
 cout3 <- subset(cout, cout$ClaimAmount <20000)
+set.seed(123)
 perm <- sample(nrow(cout3),80/100*nrow(cout3))
 train <- cout3[perm,]
 test <- cout3[-perm,]
@@ -219,7 +220,7 @@ summary(gamma.inv_Hampel)
 ```
 
 ```{r}
-gamma.log_Hampel <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel, family = Gamma(link = "log"))
+gamma.log_Hampel <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+BonusMalus*Categ, data = train_Hampel, family = Gamma(link = "log"))
 summary(gamma.log_Hampel)
 
 gamma.id_Hampel <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel, family = Gamma(link = "identity"))

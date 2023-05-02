@@ -632,6 +632,10 @@ Les liens "identité", "inverse" et "log" pour un GLM défini avec la loi gaussi
 invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),na.action = na.exclude)
 ```
 
+```{r}
+invgauss.log$converged
+```
+
 Essayons de voir s'il est possible d'obtenir des GLM à l'aide des méthodes des outliers.
 
 #### 3)Echantillon avec outliers

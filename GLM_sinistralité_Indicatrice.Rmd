@@ -58,6 +58,8 @@ freMPL5$Risque[freMPL5$RiskArea == "10"] = 2
 freMPL5$Risque[freMPL5$RiskArea == "11"] = 3
 freMPL5$Risque[freMPL5$RiskArea == "4"] = 4
 freMPL5$Risque = factor(freMPL5$Risque)
+
+freMPL5$DrivAge_2 = freMPL5$DrivAge^2
 ```
 
 ```{r}
@@ -486,19 +488,24 @@ Après avoir fait plusieurs interactions (tout en gardant un nombre interprétab
 
     Nous allons donc rajouter ces interactions.
 
-    ```{r}
-    echantillon <- sample(c(TRUE, FALSE), nrow(freMPL5), replace=TRUE, prob=c(0.8,0.2))
-    train  <- freMPL5[echantillon, ]
-    test   <- freMPL5[!echantillon, ]
-    ```
-
 ```{r}
 mod_vide_poisson <- glm(Sinistres2 ~ 1, data = train, family = poisson(link="log"))
 ```
 
 ```{r}
-mod_inter <- glm(Sinistres2 ~ ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+DrivAge_fact+Categ+Risque*MariStat+HasKmLimit+VehUsage+Categ:MariStat+DrivAge_fact:Categ, data = train, family = poisson(link = "log"))
+mod_inter <- glm(Sinistres2 ~ ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+DrivAge_fact+Categ+Risque*MariStat+HasKmLimit+VehUsage+Categ:MariStat+Categ:DrivAge_fact, data = train, family = poisson(link = "log"))
 summary(mod_inter)
+```
+
+```{r}
+mod_final <- step(mod_inter, mod_vide_poisson, trace = F, direction = c('both'))
+summary(glm_final)
+```
+
+```{r}
+BIC(mod_final)
+BIC(mod_vide_poisson)
+BIC(mod)
 ```
 
 ## b) Suppression de valeurs extrêmes
@@ -738,26 +745,27 @@ summary(modBoth_1_7)
 
 La méthode nous a enlevé presque toutes les variables. Donc nous n'allons clairement pas choisir cette modélisation.
 
-# Etude des résidus
+## c) Etude des résidus
 
 A partir des différentes modélisations ci-dessus et par une logique de sélection que nous expliciterons plus en profondeur dans le rendu écrit (LateX) du mémoire, nous allons conserver le modèle obtenu par un GLM de Poisson sur toutes les observations et les interactions. Nous allons donc effectuer une étude des résidus pour vérifier que nos données collent bien aux hypothèses du modèle.
 
 ```{r}
-residus = resid(modBoth_2)
+residus = resid(mod_final)
+plot(mod_final)
 ```
 
-## Visualisation des résidus
+### Visualisation des résidus
 
 ```{r}
-plot(modBoth_2$fitted.values, residus, xlab = "Valeurs ajustées", ylab="Résidus", main = "Graphique en nuage de points des résidus par rapport aux valeurs ajustées")
+plot(mod_final$fitted.values, residus, xlab = "Valeurs ajustées", ylab="Résidus", main = "Graphique en nuage de points des résidus par rapport aux valeurs ajustées")
 plot(residus, type="h", ylab="Résidus standardisés", main = "Graphique en barres des résidus standardisés")
-plot(resid(modBoth_2, type = "pearson"),type = "h", ylab="Résidus de Pearson", main="Graphique en barres des résidus de Pearson")
+plot(resid(mod_final, type = "pearson"),type = "h", ylab="Résidus de Pearson", main="Graphique en barres des résidus de Pearson")
 hist(residus, nclass=1000, xlim=c(-5,5))
 ```
 
 Avec l'histogramme des résidus, on peut bien voir que le modèle a tendance à surévaluer le nombre de sinistres car les valeurs importantes de l'échantillon de données biaisent la prédiction.
 
-## Vérification Résidus\~Normale
+### Vérification Résidus\~Normale
 
 Plusieurs tests existent pour vérifier si des variables aléatoires suivent une loi de Poisson. Nous allonc ici utiliser le test de Kolmogorov-Smirnov.
 
@@ -783,22 +791,12 @@ hist(residus, nclass = 100)
 hist(residus, nclass = 500, xlim = c(-5,5))
 ```
 
-## Vérification pour une éventuelle surdispersion
-
-```{r}
-variance_obs = var(residus)
-variance_att = mean(modBoth_2$fitted.values)
-(rapport_variance = variance_obs/variance_att)
-```
-
-Alors, on a ici une surdispersion. Cela est clairement dû aux quelques valeurs extrêmes.
-
-# Etude des outliers
+## d) Etude des outliers
 
 Calculons dans un premier temps les résidus de Pearson
 
 ```{r}
-inf <- influence.measures(modBoth_2)
+inf <- influence.measures(mod_final)
 pearson_resid <- inf$infmat
 ```
 
@@ -817,17 +815,21 @@ Voici un moyen classque de trouver et retirer les outliers.
 outliers=as.numeric(names(cooksd)[(cooksd > (4/length(train)))])
 
 fin=length(outliers) #On pourrait ici modifier pour changer le nombre d'outliers à retirer du data d'entrainement.
+(fin)
 outliers=as.numeric(names(sort(cooksd, decreasing = TRUE)[1:fin]))
-
 
 train_sansoutliers <- train[-c(outliers), ]
 
-modFull_Outliers <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+Risque+DrivAge_fact*Categ, data = train_sansoutliers, family = poisson(link = "log"))
+modFull_Outliers <- glm(Sinistres2 ~ ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+DrivAge_fact+Categ+Risque*MariStat+HasKmLimit+VehUsage+Categ:MariStat+Categ:DrivAge_fact, data = train_sansoutliers, family = poisson(link = "log"))
 summary(modFull_Outliers)
 ```
 
 ```{r}
-summary(modFull_2)
+summary(mod_inter)
 ```
 
-Ici, en retirant les 5 outliers, on reduit l'AIC de 4 unités. Ce n'est pas énorme mais nous conserverons ce modèle.
+On ne gagne pas beaucoup en AIC en retirant les outliers donc nous allons les garder.
+
+```{r}
+plot(modFull_Outliers)
+```

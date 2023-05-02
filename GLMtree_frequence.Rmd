@@ -19,6 +19,7 @@ library(vcd)
 ```
 
 ```{r}
+
 data(freMPL5)
 #Création d'une variable de sinistralité
 freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure

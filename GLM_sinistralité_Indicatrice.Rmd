@@ -59,14 +59,12 @@ freMPL5$Risque[freMPL5$RiskArea == "11"] = 3
 freMPL5$Risque[freMPL5$RiskArea == "4"] = 4
 freMPL5$Risque = factor(freMPL5$Risque)
 
-freMPL5$DrivAge2 = freMPL5$DrivAge**2
+freMPL5$DrivAge_2 = freMPL5$DrivAge^2
 ```
 
 ```{r}
-summary(freMPL5$Sinistres)
+summary(freMPL5$Sinistres2)
 ```
-
-# Création d'un modèle linéaire généralisé
 
 ```{r}
 set.seed(seed = 2023)
@@ -75,9 +73,7 @@ train  <- freMPL5[echantillon, ]
 test   <- freMPL5[!echantillon, ]
 ```
 
-## Sélection de modèle
-
-### Choix de modélisation
+# 1) Modélisation de `ClaimInd` (approche binomiale)
 
 L'objectif de cette étude est d'expliquer "ClaimInd" (représenter par la variable $Y$) grâce à $p$ variables explicatives que nous déterminerons.
 
@@ -101,8 +97,6 @@ Nous avons déjà fait cette étape dans la première partie donc nous allons do
 
 Nous prendrons dans un premier temps toutes les variables sauf RecordBeg, RecordEnd, Gender (interdit par la législation française.
 
-### Choix de selection de variables
-
 Afin de sélectionner au mieux notre modèle, nous devons introduire un critère de sélection.
 
 Le critère $AIC$ d'un modèle $[m]$ est
@@ -111,7 +105,9 @@ $$
 AIC(m)=\frac{n}{2}\log(SCR(m))+m
 $$
 
-avec $SCR(m)=||P_mY-Y||^2$ et $n$ le nombre d'observations. On choisit un modèle $[m]$ qui minimise l'$AIC$. Afin de déterminer le "meilleur" modèle pour notre étude, nous utiliserons la méthode "both". Cette dernière part de l'intercept et ajoute/enlève les variables une à une tout en comparant selon le critère $AIC$
+avec $SCR(m)=||P_mY-Y||^2$ et $n$ le nombre d'observations. On choisit un modèle $[m]$ qui minimise l'$AIC$. Afin de déterminer le "meilleur" modèle pour notre étude, nous utiliserons la méthode "both". Cette dernière part de l'intercept et ajoute/enlève les variables une à une tout en comparant selon le critère $AIC$.
+
+Nous allons introduire plusieurs modèles. Un modèle vide puis des modèles pleins utilisant différentes fonctions de lien.
 
 ### Lien log
 
@@ -145,7 +141,7 @@ summary(modBoth)
 
 Grâce à cette méthode nous obtenons un candidat pour notre modélisation.
 
-### Lien logit
+### Lien logit (lien canonique)
 
 ```{r}
 mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = logit))
@@ -153,7 +149,7 @@ summary(mod0)
 ```
 
 ```{r}
-modFull <- glm(ClaimInd ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+Categ*DrivAge_fact, data = train, family = binomial(link = logit))
+modFull <- glm(ClaimInd ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+Categ+DrivAge_fact, data = train, family = binomial(link = logit))
 summary(modFull)
 ```
 
@@ -209,7 +205,7 @@ summary(modFull)
 Un élément important à prendre en compte dans l'analyse des données est le traitement des outliers. Voyons si nous observons des candidats potentiels par lecture graphique
 
 ```{r}
-plot(modBoth, 5)
+plot(modBoth)
 ```
 
 Test pour voir si il y a des outliers :
@@ -220,22 +216,22 @@ influenceIndexPlot(modBoth)
 outlierTest(modBoth)
 ```
 
-Si p-Bonferroni \>0,05, pas un outlier.
+Si p-Bonferroni \>0,05 alors on conserve l'hyptohèse que ce n'est pas un outlier.
 
-# Prédiction
+Il n'y a donc pas d'outlier ici dans ce modèle.
 
-## Evaluation du modèle sur les données tests
+## Prédiction avec le modèle binomial
+
+### Evaluation du modèle sur les données tests
 
 ```{r}
 estimation <- modBoth$fitted.values
 hist(estimation)
 ```
 
-## Utilisation de métriques de comparaison
+### Utilisation de métriques de comparaison
 
-### RMSE
-
-#### Sur le jeu de données train
+#### RMSE
 
 ```{r}
 RMSE_train <- sqrt(mean(modBoth$residuals^2))
@@ -292,10 +288,6 @@ specificite <- vraisneg / (vraisneg + fauxpos)
 confusion.mat
 ```
 
-```{r}
-
-```
-
 #### Sur le jeu de données test
 
 ```{r}
@@ -320,12 +312,16 @@ confusion.mat
 ```{r}
 fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
 
-fit <- train(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+fit <- train(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact,
     data = train, method = "glm", 
     family = "binomial", trControl = fit.control)
+
+summary(fit)
 ```
 
-# Test avec une variable de Poisson
+# 2) Modélisation de `Sinistres2` (variable dans $\mathbb{N}$)
+
+## a) Modélisation avec une Poisson
 
 ```{r}
 summary(freMPL5$Sinistres)
@@ -335,7 +331,7 @@ hist(freMPL5$Sinistres, breaks=bornes, xlim=c(0,10))
 hist(freMPL5$Sinistres, breaks=bornes, xlim=c(0,10), ylim = c(0,2000))
 ```
 
-## Lien log (lien canonique)
+### Lien log (lien canonique)
 
 ```{r warning= FALSE}
 mod0_2 <- glm(Sinistres2 ~ 1, data = train, family = poisson(link = "log"))
@@ -347,7 +343,7 @@ summary(mod0_2)
 ```
 
 ```{r}
-modFull_2 <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+Risque+DrivAge_fact*Categ, data = train, family = poisson(link = "log"))
+modFull_2 <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+Risque+DrivAge_fact+Categ, data = train, family = poisson(link = "log"))
 summary(modFull_2)
 ```
 
@@ -358,7 +354,11 @@ modBoth_2 = step(modFull_2, mod0_2, trace=F, direction = c('both'))
 summary(modBoth_2)
 ```
 
-Ce modèle obtenu par une méthode de pas n'est pas tellement amélioré mais c'est celui que nous conserverons.
+Remarque : Certaines interactions ont un coefficient indefini car aucun individu ne possède ces caractères dans l'échantilllon `train`.
+
+D'autres une p-value très faible mais un coefficient élevé (en valeur absolue). Cela veut dire qu'il y a pas trop peu d'individus dans l'échantillon `train`. Nous devrons faire attention à cela puisque ça risque de mener à un surapprentissage. Nous ne conserverons donc que les interactions qui sont suffisamment représentatives dans l'échantillon `freMPL5`.
+
+Cependant, continuons avant cela d'explorer les modèles. Ensuite nous en sélectionnerons un et nous l'améliorerons.
 
 ```{r}
 plot(modBoth_2)
@@ -381,7 +381,7 @@ RMSE_2_train <- sqrt(mean(modBoth_2$residuals^2))
 RMSE_2_train
 ```
 
-## Lien identité
+### Lien identité
 
 ```{r}
 mod0_identité <- glm(Sinistres2 ~ 1, data = train, family = poisson(link = "identity"))
@@ -395,7 +395,7 @@ summary(mod0_identité)
 
 Il y a une erreur. Est-ce par rapport au fait qu'il ne pervient pas à trouver des valeurs pour les coefficients et donc que la méthode n'est pas convergente ?
 
-## Lien sqrt
+### Lien sqrt
 
 Remarque : d'après la documentation R, on ne pourra pas utiliser d'autres liens car "the `poisson` family accepts the links `log`, `identity`, and `sqrt`".
 
@@ -416,7 +416,7 @@ summary(modBoth_sqrt)
 
 On remarque que beaucoup de variables ont été enlevées ici pour maximiser l'AIC. Cependant, nous pouvons remarquer que l'AIC reste inférieur à celui obtenu avec le lien canonique log.
 
-# Test avec une binomiale négative ?
+## b) Modélisation avec une Binomiale Négative
 
 Utiliser `glm.nb`.
 
@@ -434,7 +434,7 @@ modBN_Full <- glm.nb(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp
 summary(modBN_Full)
 ```
 
-# Test avec une quasi-Poisson
+## c) Modélisation avec une Quasi-Poisson
 
 ```{r warning= FALSE}
 mod0_3 <- glm(Sinistres2 ~ 1, data = train, family = quasipoisson(link = "log"))
@@ -453,26 +453,80 @@ RMSE_3_train <- sqrt(mean(modFull_3$residuals^2))
 RMSE_3_train
 ```
 
-# GLM sur les valeurs basses de Sinistres
+Cette modélisation ne change pas vraiment de la modélisation de Poisson classique puisqu'il n'y a pas de surdispersion dans les données.
+
+# 3) Choix final de la modélisation et amélioration du modèle
+
+En comparant les modèles vides avec les modèles pleins, on remarque que c'est le modèle de Poisson qui améliore le plus le critère de l'AIC. Nous allons donc choisir ce modèle. Nous sommes conscients que ce modèle ne fit pas complètement aux données et c'est pour cela que nous allons essayer de l'améliorer en cherchant des interactions cohérentes ou en utilisant uniquement certaines données.
+
+## a) Interactions
+
+Comme dit précédemment, la variable `Gender` qui donne le genre de l'assuré ne peut être utilisée explicitement dans le calcul de la prime d'un assuré en France. Nous décidons donc de ne pas en tenir compte dans ce mémoire même si l'information pourrait être utile.
+
+Cherchons quelques intéractions cohérentes qui permettraient d'améliorer le modèle et comparons les avec le modèle plein classique. Notons que nous ne pourrons pas garder toutes les intéractions. En effet, si nous faisions cela, nous ferions de l'overfitting car alors certaines données seraient en trop petit nombre dans certaines catégories croisées, ce qui rendrait le modèle très dépendant de l'échantillon
+
+Pour rappel, voici le modèle normal que nous allons nommer différemment.
+
+```{r}
+mod <- glm(Sinistres2 ~ ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+DrivAge_fact+Risque+MariStat+HasKmLimit+Categ+VehUsage, data = train, family = poisson(link = "log"))
+summary(mod)
+```
+
+Après avoir fait plusieurs interactions (tout en gardant un nombre interprétable de variables finales), nous remarquons que certaines interactions permettent d'améliorer le critère de l'AIC :
+
+-   `Categ2:MariStatOther` et `Categ3:MariStatOther`
+
+-   `Risque1:DrivAge_fact(45,50]` mais représente que 53 données donc c'est trop peu pour éviter le sur-apprentissage.
+
+-   `Risque1:DrivAge_fact(35,40]` et `Risque2:DrivAge_fact(35,40]` et `Risque3:DrivAge_fact(35,40]` et `Risque4:DrivAge_fact(35,40]`
+
+-   `Categ1 * DrivAge_fact` et `Categ3 * DrivAge_fact`
+
+-   `Categ1:VehUsageProfessional` et `Categ3:VehUsageProfessional run`
+
+    On peut noter que l'interaction `Risque*Categ` permet d'obtenir quelques autres variables significatives mais les variables de base perdent alors en significativité. Nous ne conserverons donc pas cette interactions.
+
+    Nous allons donc rajouter ces interactions.
+
+```{r}
+mod_vide_poisson <- glm(Sinistres2 ~ 1, data = train, family = poisson(link="log"))
+```
+
+```{r}
+mod_inter <- glm(Sinistres2 ~ ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+DrivAge_fact+Categ+Risque*MariStat+HasKmLimit+VehUsage+Categ:MariStat+Categ:DrivAge_fact, data = train, family = poisson(link = "log"))
+summary(mod_inter)
+```
+
+```{r}
+mod_final <- step(mod_inter, mod_vide_poisson, trace = F, direction = c('both'))
+summary(glm_final)
+```
+
+```{r}
+BIC(mod_final)
+BIC(mod_vide_poisson)
+BIC(mod)
+```
+
+## b) Suppression de valeurs extrêmes
 
 Comme vu sur la fin de la partie Test avec une loi de Poisson, nous allons considérer dans un premier temps les observations qui possèdent un faible nombre de sinistres.
 
 ```{r}
-quantile(freMPL5$Sinistres, c(0, 0.8, 0.9, seq(0.9,1,0.0005)))
+quantile(freMPL5$Sinistres, c(0, 0.8, 0.9, seq(0.9,1,0.005)))
 ```
 
 Ces quantiles pourront éventuellement nous aider à comprendre le pourcentage de variables que nous ignorons dans un premier temps.
 
-#### \<= 3
+#### \<= 3 (pas concluant)
 
 ```{r}
 inf3 = freMPL5[freMPL5$Sinistres <= 3,]
-nrow(inf3)
-nrow(freMPL5)
+nrow(freMPL5)-nrow(inf3)
 (nrow(freMPL5)-nrow(inf3))/nrow(freMPL5)
 ```
 
-On ne perd que 453 obersavtions avec ce procédé, ce qui représente moins de 1,8% des assurés.
+On ne perd que 453 observations avec ce procédé, ce qui représente moins de 1,8% des assurés.
 
 ```{r}
 lmb3 = mean(inf3$Sinistres2)
@@ -509,7 +563,7 @@ summary(mod0_3)
 ```
 
 ```{r}
-modFull_3 <- glm(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact, data = train3, family = poisson(link = "log"))
+modFull_3 <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+DrivAge_fact+Categ, data = train3, family = poisson(link = "log"))
 summary(modFull_3)
 ```
 
@@ -560,7 +614,7 @@ confusion.mat
 
 On obtient encore des résultats qui ne sont pas particulièrement satisfaisants.
 
-#### \<= 4
+#### \<= 4 (pas concluant)
 
 ```{r}
 inf4 = freMPL5[freMPL5$Sinistres <= 4,]
@@ -624,7 +678,7 @@ modNB0_4 <- glm.nb(Sinistres2 ~ 1, data = train4)
 summary(modNB0_4)
 ```
 
-#### Seulement avec les sinistres \>1
+#### Seulement avec les sinistres \>1 (pas concluant)
 
 ##### Choix de partition
 
@@ -691,26 +745,27 @@ summary(modBoth_1_7)
 
 La méthode nous a enlevé presque toutes les variables. Donc nous n'allons clairement pas choisir cette modélisation.
 
-# Etude des résidus
+## c) Etude des résidus
 
 A partir des différentes modélisations ci-dessus et par une logique de sélection que nous expliciterons plus en profondeur dans le rendu écrit (LateX) du mémoire, nous allons conserver le modèle obtenu par un GLM de Poisson sur toutes les observations et les interactions. Nous allons donc effectuer une étude des résidus pour vérifier que nos données collent bien aux hypothèses du modèle.
 
 ```{r}
-residus = resid(modBoth_2)
+residus = resid(mod_final)
+plot(mod_final)
 ```
 
-## Visualisation des résidus
+### Visualisation des résidus
 
 ```{r}
-plot(modBoth_2$fitted.values, residus, xlab = "Valeurs ajustées", ylab="Résidus", main = "Graphique en nuage de points des résidus par rapport aux valeurs ajustées")
+plot(mod_final$fitted.values, residus, xlab = "Valeurs ajustées", ylab="Résidus", main = "Graphique en nuage de points des résidus par rapport aux valeurs ajustées")
 plot(residus, type="h", ylab="Résidus standardisés", main = "Graphique en barres des résidus standardisés")
-plot(resid(modBoth_2, type = "pearson"),type = "h", ylab="Résidus de Pearson", main="Graphique en barres des résidus de Pearson")
+plot(resid(mod_final, type = "pearson"),type = "h", ylab="Résidus de Pearson", main="Graphique en barres des résidus de Pearson")
 hist(residus, nclass=1000, xlim=c(-5,5))
 ```
 
 Avec l'histogramme des résidus, on peut bien voir que le modèle a tendance à surévaluer le nombre de sinistres car les valeurs importantes de l'échantillon de données biaisent la prédiction.
 
-## Vérification Résidus\~Normale
+### Vérification Résidus\~Normale
 
 Plusieurs tests existent pour vérifier si des variables aléatoires suivent une loi de Poisson. Nous allonc ici utiliser le test de Kolmogorov-Smirnov.
 
@@ -736,22 +791,12 @@ hist(residus, nclass = 100)
 hist(residus, nclass = 500, xlim = c(-5,5))
 ```
 
-## Vérification pour une éventuelle surdispersion
-
-```{r}
-variance_obs = var(residus)
-variance_att = mean(modBoth_2$fitted.values)
-(rapport_variance = variance_obs/variance_att)
-```
-
-Alors, on a ici une surdispersion. Cela est clairement dû aux quelques valeurs extrêmes.
-
-# Etude des outliers
+## d) Etude des outliers
 
 Calculons dans un premier temps les résidus de Pearson
 
 ```{r}
-inf <- influence.measures(modBoth_2)
+inf <- influence.measures(mod_final)
 pearson_resid <- inf$infmat
 ```
 
@@ -770,17 +815,21 @@ Voici un moyen classque de trouver et retirer les outliers.
 outliers=as.numeric(names(cooksd)[(cooksd > (4/length(train)))])
 
 fin=length(outliers) #On pourrait ici modifier pour changer le nombre d'outliers à retirer du data d'entrainement.
+(fin)
 outliers=as.numeric(names(sort(cooksd, decreasing = TRUE)[1:fin]))
-
 
 train_sansoutliers <- train[-c(outliers), ]
 
-modFull_Outliers <- glm(Sinistres2 ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+Risque+DrivAge_fact*Categ, data = train_sansoutliers, family = poisson(link = "log"))
+modFull_Outliers <- glm(Sinistres2 ~ ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+DrivAge_fact+Categ+Risque*MariStat+HasKmLimit+VehUsage+Categ:MariStat+Categ:DrivAge_fact, data = train_sansoutliers, family = poisson(link = "log"))
 summary(modFull_Outliers)
 ```
 
 ```{r}
-summary(modFull_2)
+summary(mod_inter)
 ```
 
-Ici, en retirant les 5 outliers, on reduit l'AIC de 4 unités. Ce n'est pas énorme mais nous conserverons ce modèle.
+On ne gagne pas beaucoup en AIC en retirant les outliers donc nous allons les garder.
+
+```{r}
+plot(modFull_Outliers)
+```

@@ -672,7 +672,71 @@ invgauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp
 invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),,na.action = na.exclude)
 ```
 
-#### a) Both, Backward and Forward
+### B) Lien Identité, inverse et log
+
+#### 1) Echantillon sans outliers / sans interactions
+
+```{r}
+invgauss.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "identity"),na.action = na.exclude)
+#(na.action = na.exclude) permet d'effectuer le GLM sans prendre compte des possibles données manquantes de notre échantillon train
+```
+
+```{r}
+invgauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "inverse"),na.action = na.exclude)
+```
+
+Ce message d'erreur apparait suite à la présence de données avec des valeurs Inf, manquantes, indéfinies ou non numériques mais aussi lorsque les variables ne sont pas appropriées pour la regression logistique de notre modèle. Or nous n'avons pas de valeurs manquantes exceptées pour la variable "RecordBeg" d'après le code suivant :
+
+```{r}
+dataSansRecordBeg <- train[, -4]
+if (sum(is.na(dataSansRecordBeg)) > 0) {
+  NaMiss <- 1
+  #présence d'au moins une valeur manquante
+} else {
+  NaMiss <- 0
+  #abscence de valeurs manquantes
+}
+print(NaMiss)
+```
+
+Les liens "identité", "inverse" et "log" pour un GLM défini avec la loi gaussienne inverse ne sont pas compatibles avec notre jeu de données "train"
+
+```{r}
+invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),na.action = na.exclude)
+```
+
+Essayons de voir s'il est possible d'obtenir des GLM à l'aide des méthodes des outliers.
+
+#### 3)Echantillon avec outliers
+
+```{r}
+invgauss.id_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel_Tukey, family = inverse.gaussian(link = "identity"),na.action = na.exclude)
+
+```
+
+```{r}
+invgauss.log_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel_Tukey, family = inverse.gaussian(link = "log"),na.action = na.exclude)
+```
+
+Le lien "identité" et "log" renvoient le même message d'erreur pour chaque méthode des outliers et ne sont pas appropriés pour une regression logistique de la loi inverse gaussienne.
+
+```{r}
+invgauss.inv_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Tukey, family = inverse.gaussian(link = "inverse"))
+summary(invgauss.inv_Tukey)
+
+```
+
+#### a) Comparaison entre Modèle plein et vide
+
+```{r}
+mod_invgauss.inv_0 <- glm(ClaimAmount ~ 1, data = train_Tukey, family = inverse.gaussian(link = "inverse"))
+summary(mod_invgauss.inv_0)
+```
+
+```{r}
+mod_invgauss.inv_Both = step(invgauss.inv_Tukey, mod_invgauss.inv_0, trace=F,direction = c('both'))
+summary(mod_invgauss.inv_Both)
+```
 
 #### b) Prediction
 

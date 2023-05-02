@@ -1,0 +1,115 @@
+---
+title: "glmtree_frequence"
+output: html_document
+date: "2023-04-15"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rpart)
+library(rpart.plot)
+library(sp)
+library(CASdatasets)
+library(party)
+library(partykit)
+library(vcd)
+```
+
+```{r}
+
+data(freMPL5)
+#Création d'une variable de sinistralité
+freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
+freMPL5$Sinistres2 = round(freMPL5$Sinistres)
+
+#passer en variables catégorielles
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+
+#segmentation des tranches d'âge
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+
+#Découpage CSP
+freMPL5$Categ <-  ifelse(freMPL5$SocioCateg %in% c("CSP46","CSP48"), "Categ1",
+ifelse(freMPL5$SocioCateg %in% c("CSP50","CSP55"), "Categ2",
+ifelse(freMPL5$SocioCateg %in% c("CSP60"),"Categ3",
+ifelse(freMPL5$SocioCateg %in% c("CSP42","CSP1", "CSP66"),"Categ4","Categ0"))))
+freMPL5$Categ = factor(freMPL5$Categ)
+
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+```
+
+```{r}
+
+
+set.seed(123) 
+train.index <- sample(1:nrow(freMPL5), size=0.8*nrow(freMPL5), replace=FALSE)
+trainGLM.data1 <- freMPL5[train.index,]
+testGLM.data1 <- freMPL5[-train.index,]
+```
+
+```{r}
+glm_tree_bin <- glmtree(ClaimInd ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data1 , maxdepth = 4, family = binomial(link = logit))
+plot(glm_tree_bin)
+summary(glm_tree_bin)
+```
+
+```{r}
+
+AIC(glm_tree_bin)
+BIC(glm_tree_bin)
+```
+
+```{r}
+
+prediction <- predict(glm_tree_bin, newdata = testGLM.data1)
+mse <- mean((prediction - testGLM.data1$ClaimAmount)^2)
+mse
+```
+
+```{r}
+table(prediction, testGLM.data1$ClaimInd)
+```
+
+```{r}
+glm_tree_poi <- glmtree(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data1 , maxdepth = 4, family = poisson(link="log"))
+plot(glm_tree_poi)
+
+```
+
+```{r}
+
+AIC(glm_tree_poi)
+BIC(glm_tree_poi)
+```
+
+```{r}
+
+prediction2 <- predict(glm_tree_poi, newdata = testGLM.data1)
+mse <- mean((prediction2 - testGLM.data1$Sinistres2)^2)
+mse
+```
+
+```{r}
+#Enlevons la valeur extrême de plus de 100
+trainGLM.data2 <- subset(trainGLM.data1, trainGLM.data1$Sinistres2 < 100)
+```
+
+```{r}
+ctrl <- partykit::ctree_control(mincriterion = 0.01, minsplit = 10)
+glm_tree_poi <- glmtree(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data2 , maxdepth = 4, family = poisson(link="log"), minsplit = 10)
+plot(glm_tree_poi)
+summary(glm_tree_poi)
+```

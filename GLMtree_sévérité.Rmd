@@ -50,15 +50,15 @@ freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 ```
 
 ```{r, error = TRUE}
-cout8 <- freMPL5[freMPL5$ClaimInd == 1,]
+cout <- freMPL5[freMPL5$ClaimInd == 1,]
 ```
 
 ```{r}
-cout3 <- subset(cout, cout$ClaimAmount <20000)
+cout2 <- subset(cout, cout$ClaimAmount <20000)
 set.seed(123)
-perm <- sample(nrow(cout3),80/100*nrow(cout3))
-trainGLM.data <- cout3[perm,]
-testGLM.data  <- cout3[-perm,]
+perm <- sample(nrow(cout2),80/100*nrow(cout2))
+trainGLM.data <- cout2[perm,]
+testGLM.data  <- cout2[-perm,]
 
 ```
 

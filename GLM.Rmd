@@ -825,8 +825,6 @@ summary(modBoth_lognorm_inv_1)
 
 #### 1)Echantillon sans outliers
 
-### 
-
 ```{r}
 lognorm.log <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
 

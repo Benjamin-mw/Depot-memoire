@@ -813,21 +813,17 @@ modBoth_lognorm_inv_1 = step(lognorm.inv_Tukey, mod0_lognorm_inv_1, trace=F,dire
 summary(modBoth_lognorm_inv_1)
 ```
 
-### II) Modele Lucas
+### C) Lien log
+
+#### 1)Echantillon sans outliers
+
+### 
 
 ```{r}
-lognorm.inv <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "inverse"))
-
-summary(lognorm.inv)
-
 lognorm.log <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
 
 summary(lognorm.log)
 
-#On récupère les estimateurs de ce modèle sous forme de liste 
-
-coeffcients_lognorm.log=coef(lognorm.log)
-coeffcients_lognorm.log
 ```
 
 ```{r}

@@ -18,8 +18,9 @@ library(partykit)
 library(vcd)
 ```
 
-```{r}
+## Mise en forme des données
 
+```{r}
 data(freMPL5)
 #Création d'une variable de sinistralité
 freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
@@ -48,31 +49,35 @@ ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 ```
 
+## Creation train et test
+
 ```{r}
-
-
 set.seed(123) 
 train.index <- sample(1:nrow(freMPL5), size=0.8*nrow(freMPL5), replace=FALSE)
 trainGLM.data1 <- freMPL5[train.index,]
 testGLM.data1 <- freMPL5[-train.index,]
 ```
 
+# Arbre GLM binomial
+
+## Lien logit
+
 ```{r}
-glm_tree_bin <- glmtree(ClaimInd ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree_bin_logit <- glmtree(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = trainGLM.data1 , maxdepth = 4, family = binomial(link = logit))
-plot(glm_tree_bin)
-summary(glm_tree_bin)
+plot(glm_tree_bin_logit)
+summary(glm_tree_bin_logit)
 ```
 
 ```{r}
 
-AIC(glm_tree_bin)
-BIC(glm_tree_bin)
+AIC(glm_tree_bin_logit)
+BIC(glm_tree_bin_logit)
 ```
 
 ```{r}
 
-prediction <- predict(glm_tree_bin, newdata = testGLM.data1)
+prediction <- predict(glm_tree_bin_logit, newdata = testGLM.data1)
 mse <- mean((prediction - testGLM.data1$ClaimAmount)^2)
 mse
 ```
@@ -80,6 +85,72 @@ mse
 ```{r}
 table(prediction, testGLM.data1$ClaimInd)
 ```
+
+## Lien log
+
+```{r}
+glm_tree_bin_log <- glmtree(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data1 , maxdepth = 4, family = binomial(link = log))
+plot(glm_tree_bin_log)
+summary(glm_tree_bin_log)
+```
+
+```{r}
+
+AIC(glm_tree_bin_log)
+BIC(glm_tree_bin_log)
+```
+
+```{r}
+
+prediction <- predict(glm_tree_bin_log, newdata = testGLM.data1)
+mse <- mean((prediction - testGLM.data1$ClaimAmount)^2)
+mse
+```
+
+```{r}
+table(prediction, testGLM.data1$ClaimInd)
+```
+
+```{r}
+
+```
+
+## Lien probit
+
+```{r}
+glm_tree_bin_probit <- glmtree(ClaimInd ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data1 , maxdepth = 4, family = binomial(link = probit))
+plot(glm_tree_bin_probit)
+summary(glm_tree_bin_probit)
+```
+
+```{r}
+
+AIC(glm_tree_bin_probit)
+BIC(glm_tree_bin_probit)
+```
+
+```{r}
+
+prediction <- predict(glm_tree_bin_probit, newdata = testGLM.data1)
+mse <- mean((prediction - testGLM.data1$ClaimAmount)^2)
+mse
+```
+
+```{r}
+table(prediction, testGLM.data1$ClaimInd)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+# Arbre GLM Poisson
 
 ```{r}
 glm_tree_poi <- glmtree(Sinistres2 ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,

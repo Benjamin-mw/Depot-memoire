@@ -529,8 +529,7 @@ AIC(mod_invgauss_mu_0)
 Verifions s'il est possible de trouver des interactions de variables tel que le modèle converge.
 
 ```{r}
-invgauss.mu_1<- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea+MariStat*ClaimNbResp 
-+RiskArea*MariStat,data = train, family = Gamma(link = "1/mu^2"),start=rep(0.01,56))
+invgauss.mu_1<- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea,data = train, family = Gamma(link = "1/mu^2"),start=rep(10e-20,52))
 
 ```
 
@@ -544,7 +543,7 @@ Le modèle ne converge toujours pas. Vérifions s'il est possible de le rendre c
 #### 3) Etude avec intéractions et outliers : Tukey
 
 ```{r}
-invgauss.mu_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea+MariStat*ClaimNbResp+RiskArea*MariStat, data = train_Tukey, family = inverse.gaussian(link = "1/mu^2"))
+invgauss.mu_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Tukey, family = inverse.gaussian(link = "1/mu^2"))
 summary(invgauss.mu_Tukey)
 ```
 
@@ -594,15 +593,13 @@ if (sum(is.na(dataSansRecordBeg)) > 0) {
 print(NaMiss)
 ```
 
-Les liens "identité", "inverse" et "log" pour un GLM défini avec la loi gaussienne inverse ne sont pas compatibles avec notre jeu de données "train"
+Voyons pour le lien "log"
 
 ```{r}
-invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"),na.action = na.exclude)
+invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"))
 ```
 
-```{r}
-invgauss.log$converged
-```
+Apparaît alors un message comme "Error: boucle interne 1 ; impossible de corriger le pas"
 
 Essayons de voir s'il est possible d'obtenir des GLM à l'aide des méthodes des outliers.
 
@@ -629,16 +626,16 @@ summary(invgauss.inv_Tukey)
 #### a) Comparaison entre Modèle plein et vide
 
 ```{r}
-mod0_invgauss.inv_Tukey <- glm(ClaimAmount ~ 1, data = train_Tukey, family = inverse.gaussian(link = "inverse"))
-summary(mod0_invgauss.inv_Tukey)
+mod0_invgauss_inv_Tukey_1 <- glm(ClaimAmount ~ 1, data = train_Tukey, family = inverse.gaussian(link = "inverse"))
+summary(mod0_invgauss_inv_Tukey_1)
 ```
 
 ```{r}
-mod_invgauss.inv_Both = step(invgauss.inv_Tukey, mod_invgauss.inv_0, trace=F,direction = c('both'))
-summary(mod_invgauss.inv_Both)
+modBoth_invgauss_inv_Tukey_1 = step(invgauss.inv_Tukey, mod0_invgauss_inv_Tukey_1, trace=F,direction = c('both'))
+summary(modBoth_invgauss_inv_Tukey_1)
 ```
 
-## Loi Log Normale
+## VI) Loi Log Normale
 
 ### A) Lien identité
 
@@ -678,7 +675,7 @@ summary(modBoth_lognorm_id_1)
 lognorm.id_Tukey <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+HasKmLimit*ClaimNbNonResp+ClaimNbNonResp*VehUsage, data = train_Tukey, family = gaussian(link = "identity"))
 
 mod0_lognorm_id_Tukey_1 <- glm(log(ClaimAmount) ~ 1, data = train_Tukey, family = gaussian(link = "identity"))
-modBoth_lognorm_id_Tukey_1 = step(lognorm.id_Tukey, mod0_lognorm_id_1, trace=F,direction = c('both'))
+modBoth_lognorm_id_Tukey_1 = step(lognorm.id_Tukey, mod0_lognorm_id_Tukey_1, trace=F,direction = c('both'))
 
 summary(mod0_lognorm_id_Tukey_1)
 summary(lognorm.id_Tukey)
@@ -725,7 +722,7 @@ summary(modBoth_lognorm_id_1)
 lognorm.inv_Tukey <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+HasKmLimit*ClaimNbNonResp+ClaimNbNonResp*VehUsage, data = train_Tukey, family = gaussian(link = "inverse"))
 
 mod0_lognorm_inv_Tukey_1 <- glm(log(ClaimAmount) ~ 1, data = train_Tukey, family = gaussian(link = "inverse"))
-modBoth_lognorm_inv_Tukey_1 = step(lognorm.inv_Tukey, mod0_lognorm_inv_1, trace=F,direction = c('both'))
+modBoth_lognorm_inv_Tukey_1 = step(lognorm.inv_Tukey, mod0_lognorm_inv_Tukey_1, trace=F,direction = c('both'))
 
 summary(mod0_lognorm_inv_Tukey_1)
 summary(lognorm.inv_Tukey)
@@ -777,7 +774,7 @@ summary(mod0_lognorm_log_Tukey_1)
 summary(modBoth_lognorm_log_Tukey_1)
 ```
 
-# Prédiction
+# VII) Quelques critères
 
 ## Deviance
 
@@ -846,11 +843,11 @@ Pour la fonction de lien "inverse" :
 ```{r}
 #Avec méthode de Tukey et avec intéractions
   #modèle réduit à l'intercept
-round(deviance(mod0_lognorm_log_Tukey_1))
+deviance(mod0_invgauss_inv_Tukey_1)
   #modèle plein
-round(deviance(invgauss.inv_Tukey))
+deviance(invgauss.inv_Tukey)
   #modèle both
-round(deviance(modBoth_lognorm_log_Tukey_1))
+deviance(modBoth_invgauss_inv_Tukey_1)
 ```
 
 ### Loi Log Normale
@@ -922,26 +919,45 @@ round(deviance(modBoth_lognorm_log_Tukey_1))
 Pour la fonction de lien "inverse" :
 
 ```{r}
-
 #Avec méthode de Tukey et avec intéractions
   #modèle réduit à l'intercept
-round(deviance(mod0_gamma_inv_Tukey))
+round(-2*as.numeric(logLik(mod0_gamma_inv_Tukey)))
   #modèle plein
-round(deviance(gamma.inv_Tukey))
+round(-2*as.numeric(logLik(gamma.inv_Tukey)))
   #modèle both
-round(deviance(modBoth_gamma_inv_Tukey))
+round(-2*as.numeric(logLik(modBoth_gamma_inv_Tukey)))
 ```
 
 Pour la fonction de lien "log" :
 
 ```{r}
+#Sans outlier, avec intéractions
+  #modèle réduit à l'intercept
+round(-2*as.numeric(logLik(mod0_gamma_log_1)))
+  #modèle plein
+round(-2*as.numeric(logLik(gamma.log_1)))
+  #modèle both
+round(-2*as.numeric(logLik(modBoth_gamma_log_1)))
 
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(-2*as.numeric(logLik(mod0_gamma_log_Tukey)))
+  #modèle plein
+round(-2*as.numeric(logLik(gamma.log_Tukey)))
+  #modèle both
+round(-2*as.numeric(logLik(modBoth_gamma_log_Tukey)))
 ```
 
-Pour la fonction de lien "inverse" :
+Pour la fonction de lien "identité" :
 
 ```{r}
-
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(-2*as.numeric(logLik(mod0_gamma_id_Tukey)))
+  #modèle plein
+round(-2*as.numeric(logLik(gamma.id_Tukey)))
+  #modèle both
+round(-2*as.numeric(logLik(modBoth_gamma_id_Tukey)))
 ```
 
 ### Loi Inverse Gaussienne
@@ -949,13 +965,25 @@ Pour la fonction de lien "inverse" :
 Pour la fonction de lien "1/mu\^2" :
 
 ```{r}
-
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(-2*as.numeric(logLik(mod0_invgauss_mu_Tukey_1)))
+  #modèle plein
+round(-2*as.numeric(logLik(invgauss.mu_Tukey)))
+  #modèle both
+round(-2*as.numeric(logLik(modBoth_invgauss_mu_Tukey_1)))
 ```
 
 Pour la fonction de lien "inverse" :
 
 ```{r}
-
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(-2*as.numeric(logLik(mod0_invgauss_inv_Tukey_1)))
+  #modèle plein
+round(-2*as.numeric(logLik(invgauss.inv_Tukey)))
+  #modèle both
+round(-2*as.numeric(logLik(modBoth_invgauss_inv_Tukey_1)))
 ```
 
 ### Loi Log Normale
@@ -965,19 +993,19 @@ Pour la fonction de lien "identité" :
 ```{r}
 #Sans outlier, avec intéractions
   #modèle réduit à l'intercept
-round(deviance(mod0_lognorm_id_0))
+round(-2*as.numeric(logLik(mod0_lognorm_id_0)))
   #modèle plein
-round(deviance(lognorm.id_1))
+round(-2*as.numeric(logLik(lognorm.id_1)))
   #modèle both
-round(deviance(modBoth_lognorm_id_1))
+round(-2*as.numeric(logLik(modBoth_lognorm_id_1)))
 
 #Avec méthode de Tukey et avec intéractions
   #modèle réduit à l'intercept
-round(deviance(mod0_lognorm_id_Tukey_1))
+round(-2*as.numeric(logLik(mod0_lognorm_id_Tukey_1)))
   #modèle plein
-round(deviance(lognorm.id_Tukey))
+round(-2*as.numeric(logLik(lognorm.id_Tukey)))
   #modèle both
-round(deviance(modBoth_lognorm_id_Tukey_1))
+round(-2*as.numeric(logLik(modBoth_lognorm_id_Tukey_1)))
 ```
 
 Pour la fonction de lien "inverse" :
@@ -985,19 +1013,19 @@ Pour la fonction de lien "inverse" :
 ```{r}
 #Sans outlier, avec intéractions
   #modèle réduit à l'intercept
-round(deviance(mod0_lognorm_inv_0))
+round(-2*as.numeric(logLik(mod0_lognorm_inv_0)))
   #modèle plein
-round(deviance(lognorm.inv_1))
+round(-2*as.numeric(logLik(lognorm.inv_1)))
   #modèle both
-round(deviance(modBoth_lognorm_inv_1))
+round(-2*as.numeric(logLik(modBoth_lognorm_inv_1)))
 
 #Avec méthode de Tukey et avec intéractions
   #modèle réduit à l'intercept
-round(deviance(mod0_lognorm_inv_Tukey_1))
+round(-2*as.numeric(logLik(mod0_lognorm_inv_Tukey_1)))
   #modèle plein
-round(deviance(lognorm.inv_Tukey))
+round(-2*as.numeric(logLik(lognorm.inv_Tukey)))
   #modèle both
-round(deviance(modBoth_lognorm_inv_Tukey_1))
+round(-2*as.numeric(logLik(modBoth_lognorm_inv_Tukey_1)))
 ```
 
 Pour la fonction de lien "log" :
@@ -1005,29 +1033,63 @@ Pour la fonction de lien "log" :
 ```{r}
 #Sans outlier, avec intéractions
   #modèle réduit à l'intercept
-round(deviance(mod0_lognorm_log_0))
+round(-2*as.numeric(logLik(mod0_lognorm_log_0)))
   #modèle plein
-round(deviance(lognorm.log_1))
+round(-2*as.numeric(logLik(lognorm.log_1)))
   #modèle both
-round(deviance(modBoth_lognorm_log_1))
+round(-2*as.numeric(logLik(modBoth_lognorm_log_1)))
 
 #Avec méthode de Tukey et avec intéractions
   #modèle réduit à l'intercept
-round(deviance(mod0_lognorm_log_Tukey_1))
+round(-2*as.numeric(logLik(mod0_lognorm_log_Tukey_1)))
   #modèle plein
-round(deviance(lognorm.log_Tukey))
+round(-2*as.numeric(logLik(lognorm.log_Tukey)))
   #modèle both
-round(deviance(modBoth_lognorm_log_Tukey_1))
+round(-2*as.numeric(logLik(modBoth_lognorm_log_Tukey_1)))
 ```
 
-## Test estimation
+# Modèle final
+
+Parmi les modèles réalisés, la loi Gamma avec le lien "log" et la loi Log Normale sont les plus aptes à ajuster la variable "ClaimAmount" de nos données. Celles-ci n'entraînent pas de problème de divergence et proposent de nombreuses variables qui auraient un impact sur notre variable de sévérité.
+
+Les plus variables les plus intéressantes et significatives sont :
+
+-   "ClaimNbResp"
+
+-   "ClaimNbNonResp"
+
+-   "ClaimWindscreen"
+
+D'autres variables ont également un impact mais leurs p valeurs sont beaucoup moins significatives comparées à ces trois variables. De plus, il est assez logique que le fait d'avoir eu plusieurs sinistres responsables, non responsables et des bris-de-glace les quatres années précédentes laisse à penser que notre assuré serait un "mauvais" conducteur et serait susceptible de rembourser cette année des montants supérieurs aux autres assurés.
+
+Vérifions quand même si les modèles proposés permettent de prédire correctement nos variables sur le jeu de donnée "test"
+
+## Prédiction et Estimation
 
 ```{r}
-estimation <- lognorm.id$fitted.values
+#Pour le modèle Gamma
+estimation <- gamma.log_1$fitted.values
 hist(estimation)
 
-prediction <- predict.glm(lognorm.id, newdata = test, type = "response")
+prediction <- predict.glm(gamma.log_1, newdata = test, type = "response")
 hist(prediction)
+
+summary(estimation)
+summary(prediction)
+```
+
+On observe bien une tendance très proche entre l'estimation de nos données et la prédiction
+
+```{r}
+# Pour la loi Log Normale au lien identité
+estimation <- lognorm.id_1$fitted.values
+hist(estimation)
+
+prediction <- predict.glm(lognorm.id_1, newdata = test, type = "response")
+hist(prediction)
+
+summary(estimation)
+summary(prediction)
 ```
 
 ### RMSE
@@ -1035,9 +1097,4 @@ hist(prediction)
 ```{r}
 RMSE_train <- sqrt(mean(lognorm.id$residuals^2))
 RMSE_train
-```
-
-```{r}
-library(data.table)
-data.final <-copy(train)
 ```

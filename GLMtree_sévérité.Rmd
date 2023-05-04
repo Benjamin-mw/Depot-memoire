@@ -91,6 +91,6 @@ mean_pred
 
 ```{r}
 glm_tree_gamma <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
-  data = train, maxdepth = 7, family = Gamma(link = "identity"))
+  data = trainGLM.data, maxdepth = 7, family = Gamma(link = "identity"))
 plot(glm_tree_gamma)
 ```

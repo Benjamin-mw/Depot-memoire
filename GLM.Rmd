@@ -214,7 +214,7 @@ outlierTest(gamma.id_Hampel)
 Voyons voir ce que donne le GLM gamma avec ce nouvel échantillon
 
 ```{r}
-gamma.inv_Hampel <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel, family = Gamma(link = "inverse"),start =rep(0.01,28))
+gamma.inv_Hampel <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel, family = Gamma(link = "inverse"),start =rep(10e-10,28))
 summary(gamma.inv_Hampel)
 ```
 
@@ -322,7 +322,7 @@ Ce message d'erreur indique que l'algorithme n'a pas convergé. Nous verrons par
 
 ```{r}
 mod0_gamma_inv_0 <- glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "inverse"))
-summary(mod0_gamma_inv_0)
+AIC(mod0_gamma_inv_0)
 ```
 
 ```{r}
@@ -331,13 +331,6 @@ summary(modBoth_gamma_inv_1)
 ```
 
 Nous ne nous éterniserons pas davantage sur ce message d'erreur. En effet, cela marchera davantage avec d'autres données
-
-##### RMSE
-
-```{r}
-RMSE_train <- sqrt(mean(mod_gamma_inv_Both$residuals^2))
-RMSE_train
-```
 
 #### 4) Echantillon avec études d'outliers et intéractions : Hampel
 
@@ -356,8 +349,8 @@ summary(mod0_gamma_inv_Hampel)
 ```
 
 ```{r}
-modBoth_gamma_inv_Both_1 = step(gamma.inv_Hampel_0, mod0_gamma_inv_Hampel, trace=F,direction = c('both'))
-summary(modBoth_gamma_inv_Both_1)
+modBoth_gamma_inv_Hampel = step(gamma.inv_Hampel_0, mod0_gamma_inv_Hampel, trace=F,direction = c('both'))
+summary(modBoth_gamma_inv_Hampel)
 ```
 
 L'écart d'AIC entre les modèle réduit à l'intercept et both n'est pas conséquent.
@@ -379,13 +372,6 @@ summary(mod0_gamma_inv_Tukey)
 ```{r}
 modBoth_gamma_inv_Tukey = step(gamma.inv_Tukey, mod0_gamma_inv_Tukey, trace=F,direction = c('both'))
 summary(modBoth_gamma_inv_Tukey)
-```
-
-##### RMSE
-
-```{r}
-RMSE_train_Tukey_inv <- sqrt(mean(modBoth_gamma_inv_Tukey$residuals^2))
-RMSE_train_Tukey_inv
 ```
 
 ### B) Lien log
@@ -416,7 +402,12 @@ modBoth_gamma_log_1 = step(gamma.log_1, mod0_gamma_log_1, trace=F,direction = c(
 summary(modBoth_gamma_log_1)
 ```
 
-Pas d'écart significatif entre les deux AIC.
+L'apparition de nombreuses variables significatives à notre modèle (dont la p valeur est inférieure à 0.05), nous fait penser dans un premier temps que ce modèle est très adapté à notre jeu de données.
+
+```{r}
+# Regardons la différence d'AIC apporté par les variables
+abs(AIC(modBoth_gamma_log_1)-AIC(mod0_gamma_log_1))
+```
 
 ##### RMSE
 
@@ -489,70 +480,27 @@ gamma.id_Tukey<- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbRes
 summary(gamma.id_Tukey)
 ```
 
-#### 4) Echantillon avec étude d'outliers et intéractions : Hampel
-
 ```{r}
-gamma.id_Hampel<- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+RiskArea*MariStat,data = train_Hampel, family = Gamma(link = "identity"))
-summary(gamma.id_Hampel)
+mod0_gamma_id_Tukey <- glm(ClaimAmount ~ 1, data = train_Tukey, family = Gamma(link = "identity"))
+summary(mod0_gamma_id_Tukey)
+
+modBoth_gamma_id_Tukey = step(gamma.log_Tukey, mod0_gamma_log_Tukey, trace=F,direction = c('both'))
+summary(modBoth_gamma_id_Tukey)
 ```
 
-#### 5) Echantillon avec étude d'outliers et intéractions : Hampel et Tukey
-
-```{r}
-gamma.id_Hampel_Tukey<- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+RiskArea*MariStat,data = train_Hampel_Tukey, family = Gamma(link = "identity"))
-summary(gamma.id_Hampel_Tukey)
-```
-
-Malgré l'étude d'outliers, aucun des trois échantillons ne semblement permettre la convergence de l'algorithme.
-
-##### AIC
-
-```{r}
-mod0_gamma_id_Hampel_Tukey_0 <- glm(ClaimAmount ~ 1, data = train_Hampel_Tukey, family = Gamma(link = "identity"))
-AIC(mod_gamma_id_2)
-```
-
-```{r}
-modBoth_gamma_id_Both_Hampel_Tukey = step(gamma.id_Hampel_Tukey, mod0_gamma_id_Hampel_Tukey_0, trace=F,direction = c('both'))
-AIC(modBoth_gamma_id_Both_Hampel_Tukey)
-```
-
-## Vrai modèle
+## Prediction du meilleur modèle
 
 ### Both, forward and backward
 
 ```{r}
-#prediction <- predict.glm(gamma.id, newdata = test, type = "response")
-#hist(prediction)
-mod0 <- glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "log"))
-```
-
-```{r}
-modBoth = step(gamma.log, mod0, trace=F,direction = c('both'))
-summary(modBoth)
-```
-
-```{r}
-modBack = step(gamma.log, mod0, trace=F,direction = c('backward'))
-summary(modBack)
-```
-
-```{r}
-modFor = step(gamma.log, mod0, trace=F,direction = c('forward'))
-summary(modFor)
-```
-
-### Prediction
-
-```{r}
-estimation <- gamma.log_Hampel$fitted.values
+estimation <- gamma.log_Tukey$fitted.values
 hist(estimation)
 estimation <- gamma.log$fitted.values
 hist(estimation)
 ```
 
 ```{r}
-prediction <- predict.glm(gamma.log_Hampel, newdata = test, type = "response")
+prediction <- predict.glm(gamma.log_Tukey, newdata = test, type = "response")
 hist(prediction)
 prediction <- predict.glm(gamma.log, newdata = test, type = "response")
 hist(prediction)
@@ -831,14 +779,6 @@ summary(modBoth_lognorm_log_Tukey_1)
 
 # Prédiction
 
-## AIC
-
-### Loi Gamma
-
-### Loi Log Normale
-
-### Loi Inverse Gaussienne
-
 ## Deviance
 
 ### Loi Gamma
@@ -846,19 +786,45 @@ summary(modBoth_lognorm_log_Tukey_1)
 Pour la fonction de lien "inverse" :
 
 ```{r}
-
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_gamma_inv_Tukey))
+  #modèle plein
+round(deviance(gamma.inv_Tukey))
+  #modèle both
+round(deviance(modBoth_gamma_inv_Tukey))
 ```
 
-Pour la fonction de lien "inverse" :
+Pour la fonction de lien "log" :
 
 ```{r}
+#Sans outlier, avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_gamma_log_1))
+  #modèle plein
+round(deviance(gamma.log_1))
+  #modèle both
+round(deviance(modBoth_gamma_log_1))
 
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_gamma_log_Tukey))
+  #modèle plein
+round(deviance(gamma.log_Tukey))
+  #modèle both
+round(deviance(modBoth_gamma_log_Tukey))
 ```
 
-Pour la fonction de lien "inverse" :
+Pour la fonction de lien "identité" :
 
 ```{r}
-
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_gamma_id_Tukey))
+  #modèle plein
+round(deviance(gamma.id_Tukey))
+  #modèle both
+round(deviance(modBoth_gamma_id_Tukey))
 ```
 
 ### Loi Inverse Gaussienne
@@ -885,6 +851,111 @@ round(deviance(mod0_lognorm_log_Tukey_1))
 round(deviance(invgauss.inv_Tukey))
   #modèle both
 round(deviance(modBoth_lognorm_log_Tukey_1))
+```
+
+### Loi Log Normale
+
+Pour la fonction de lien "identité" :
+
+```{r}
+#Sans outlier, avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_lognorm_id_0))
+  #modèle plein
+round(deviance(lognorm.id_1))
+  #modèle both
+round(deviance(modBoth_lognorm_id_1))
+
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_lognorm_id_Tukey_1))
+  #modèle plein
+round(deviance(lognorm.id_Tukey))
+  #modèle both
+round(deviance(modBoth_lognorm_id_Tukey_1))
+```
+
+Pour la fonction de lien "inverse" :
+
+```{r}
+#Sans outlier, avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_lognorm_inv_0))
+  #modèle plein
+round(deviance(lognorm.inv_1))
+  #modèle both
+round(deviance(modBoth_lognorm_inv_1))
+
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_lognorm_inv_Tukey_1))
+  #modèle plein
+round(deviance(lognorm.inv_Tukey))
+  #modèle both
+round(deviance(modBoth_lognorm_inv_Tukey_1))
+```
+
+Pour la fonction de lien "log" :
+
+```{r}
+#Sans outlier, avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_lognorm_log_0))
+  #modèle plein
+round(deviance(lognorm.log_1))
+  #modèle both
+round(deviance(modBoth_lognorm_log_1))
+
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_lognorm_log_Tukey_1))
+  #modèle plein
+round(deviance(lognorm.log_Tukey))
+  #modèle both
+round(deviance(modBoth_lognorm_log_Tukey_1))
+```
+
+## -2\*log(L)
+
+### Loi Gamma
+
+Pour la fonction de lien "inverse" :
+
+```{r}
+
+#Avec méthode de Tukey et avec intéractions
+  #modèle réduit à l'intercept
+round(deviance(mod0_gamma_inv_Tukey))
+  #modèle plein
+round(deviance(gamma.inv_Tukey))
+  #modèle both
+round(deviance(modBoth_gamma_inv_Tukey))
+```
+
+Pour la fonction de lien "log" :
+
+```{r}
+
+```
+
+Pour la fonction de lien "inverse" :
+
+```{r}
+
+```
+
+### Loi Inverse Gaussienne
+
+Pour la fonction de lien "1/mu\^2" :
+
+```{r}
+
+```
+
+Pour la fonction de lien "inverse" :
+
+```{r}
+
 ```
 
 ### Loi Log Normale

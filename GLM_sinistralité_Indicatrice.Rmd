@@ -2,12 +2,14 @@
 title: "GLM_ClaimInd"
 author: "Dudot Lucas - Lapaz Eudes - Moinard Benjamin - Nanoux Louis"
 date: "2023-02-28"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 Début habituel pour le code :
 
-```{r}
+```{r include = FALSE}
 #Packages
 library(tables); library(ggExtra) ; library(FactoMineR) ; library(factoextra) ; library(CASdatasets)
 library(tidyverse) ; library(MASS) ; library(knitr) ; library(ggplot2) ; library(cowplot)
@@ -58,8 +60,6 @@ freMPL5$Risque[freMPL5$RiskArea == "10"] = 2
 freMPL5$Risque[freMPL5$RiskArea == "11"] = 3
 freMPL5$Risque[freMPL5$RiskArea == "4"] = 4
 freMPL5$Risque = factor(freMPL5$Risque)
-
-freMPL5$DrivAge_2 = freMPL5$DrivAge^2
 ```
 
 ```{r}
@@ -339,7 +339,7 @@ summary(mod0_2)
 ```
 
 ```{r}
--2*as.numeric(logLik(modBoth_2))
+-2*as.numeric(logLik(mod0_2))
 ```
 
 ```{r}
@@ -589,9 +589,10 @@ hist(estimation3)
 ##### RMSE
 
 ```{r}
-RMSE_train3 <- sqrt(mean(modFull_3$residuals^2))
-RMSE_train3
+RMSE_train <- sqrt(mean(modFull_3$residuals^2))
+RMSE_train
 ```
+
 
 ##### Table de confusion
 
@@ -607,7 +608,7 @@ confusion.mat
 ```{r}
 estimation3 <- modFull_3$fitted.values
 hist(estimation3)
-score <- round(predict(modFull_3,test3,type="response"))
+score <- round(predict(modFull_3,test,type="response"))
 confusion.mat = table(test3$Sinistres2, score)
 
 confusion.mat

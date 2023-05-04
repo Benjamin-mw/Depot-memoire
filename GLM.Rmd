@@ -304,6 +304,7 @@ Nous allons faire un GLM avec la loi gamma et les liens identité, inverse et lo
 ```{r}
 gamma.inv_0 <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "inverse"),start =rep(0.01,28))
 summary(gamma.inv_0)
+
 ```
 
 La commande "start =rep(0.01,28)" permet de donner une valeur inititale aux coefficients que l'on cherche à estimer. Nous verrons par la suite que nos modèles appliqués aux données issues de la méthode d'Hampel et du Tukey nous permettent de palier ce problème.
@@ -715,7 +716,11 @@ invgauss.log$converged
 
 Essayons de voir s'il est possible d'obtenir des GLM à l'aide des méthodes des outliers.
 
+<<<<<<< HEAD
 #### 2) Echantillon avec etude outliers : Tukey
+=======
+#### 2)Echantillon avec outliers
+>>>>>>> 0f05214baa5642195365678910a3f2881cf982f3
 
 ```{r}
 invgauss.id_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel_Tukey, family = inverse.gaussian(link = "identity"))
@@ -792,8 +797,8 @@ Les intéraction ne sont pas signifcatives pour ce modèle. Nous allons donc con
 >>>>>>> bc8b119e08bb250ca1ee60d5a8b42469cf5aba48
 
 ```{r}
-lognorm.id <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
-summary(lognorm.id)
+lognorm.id_0 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
+summary(lognorm.id_0)
 ```
 
 <<<<<<< HEAD
@@ -852,8 +857,8 @@ AIC(mod_lognorm.log_Tukey_Both)
 Essayons de reduire l'AIC avec l'aide de nouvelles interactions
 
 ```{r}
-lognorm.id <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+ClaimNbWindscreen*ClaimNbNonResp, data = train, family = gaussian(link = "identity"))
-summary(lognorm.id)
+lognorm.id_1 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+ClaimNbWindscreen*ClaimNbNonResp, data = train, family = gaussian(link = "identity"))
+summary(lognorm.id_1)
 ```
 
 Comparons les avec le modèle réduit à l'intercept
@@ -861,6 +866,13 @@ Comparons les avec le modèle réduit à l'intercept
 ```{r}
 mod0_lognorm_id_0 <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "identity"))
 summary(mod0_lognorm_id_0)
+```
+
+Regardons le modèle réduit par la méthode Both
+
+```{r}
+modBoth = step(lognorm.id_1, mod0_lognorm_id_0, trace=F,direction = c('both'))
+summary(modBoth)
 ```
 
 #### 2) Echantillon avec études des outliers
@@ -931,8 +943,6 @@ summary(modBoth_lognorm_inv_1)
 
 #### 1)Echantillon sans outliers
 
-### 
-
 ```{r}
 lognorm.log <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
 
@@ -942,8 +952,14 @@ summary(lognorm.log)
 ```
 
 ```{r}
+<<<<<<< HEAD
 mod_lognorm.inv_Both = step(lognorm.inv, mod_lognorm.inv, trace=F,direction = c('both'))
 AIC(mod_lognorm.inv_Both)
+=======
+lognorm.log <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
+
+summary(lognorm.log)
+>>>>>>> 0f05214baa5642195365678910a3f2881cf982f3
 ```
 
 #### 2) Echantillon avec étude outliers, sans intéraction : Tukey

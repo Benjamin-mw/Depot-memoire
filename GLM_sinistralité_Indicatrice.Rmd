@@ -499,13 +499,14 @@ summary(mod_inter)
 
 ```{r}
 mod_final <- step(mod_inter, mod_vide_poisson, trace = F, direction = c('both'))
-summary(glm_final)
+summary(mod_final)
 ```
 
 ```{r}
 BIC(mod_final)
 BIC(mod_vide_poisson)
 BIC(mod)
+BIC(mod_inter)
 ```
 
 ## b) Suppression de valeurs extrêmes
@@ -765,32 +766,6 @@ hist(residus, nclass=1000, xlim=c(-5,5))
 
 Avec l'histogramme des résidus, on peut bien voir que le modèle a tendance à surévaluer le nombre de sinistres car les valeurs importantes de l'échantillon de données biaisent la prédiction.
 
-### Vérification Résidus\~Normale
-
-Plusieurs tests existent pour vérifier si des variables aléatoires suivent une loi de Poisson. Nous allonc ici utiliser le test de Kolmogorov-Smirnov.
-
-```{r}
-#test de Kolmogorov-Smirnov
-z = rnorm(200, mean = mean(residus), sd=sqrt(var(residus)))
-ks.test(residus,z)
-```
-
-Cela semble dire que les résidus ne suivent pas la loi de Poisson de paramètre la moyenne des résidus.
-
-Cela pourrait éventuellement être dû à une moyenne des résidus trop élevée à cause de certaines observations...
-
-Réalisons un test de Poisson :
-
-```{r}
-sum(modBoth_2$residuals<0)
-sum(modBoth_2$residuals>=0)
-```
-
-```{r}
-hist(residus, nclass = 100)
-hist(residus, nclass = 500, xlim = c(-5,5))
-```
-
 ## d) Etude des outliers
 
 Calculons dans un premier temps les résidus de Pearson
@@ -832,4 +807,56 @@ On ne gagne pas beaucoup en AIC en retirant les outliers donc nous allons les ga
 
 ```{r}
 plot(modFull_Outliers)
+```
+
+## e) Qualité de prédiction
+
+### Evaluation du modèle sur les données tests
+
+```{r}
+estimation <- mod_final$fitted.values
+hist(estimation)
+```
+
+### Utilisation de métriques de comparaison
+
+#### RMSE
+
+```{r}
+RMSE_train <- sqrt(mean(mod_final$residuals^2))
+RMSE_train
+```
+
+### Table de confusion
+
+#### Sur le jeu de données train
+
+```{r}
+estimation <- mod_final$fitted.values
+hist(estimation)
+score <- round(predict(mod_final,train,type="response"))
+confusion.mat = table(train$Sinistres2, score)  
+
+confusion.mat
+```
+
+#### Sur le jeu de données test
+
+```{r}
+estimation <- mod_final$fitted.values
+hist(estimation)
+score <- round(predict(mod_final,test,type="response"))
+confusion.mat = table(test$Sinistres2, score)  
+
+confusion.mat
+```
+
+# Conclusion
+
+Le `mod_final` prédit plutôt bien les individus qui n'ont pas d'accidents (tout comme le modèle binomial) car ces individus représentent une grosse partie de l'échantillon. Cependant, pour les individus ayant eu des sinistres, l'estimation est plus difficile. Cependant, faute de pouvoir faire mieux avec les données dont nous disposons, c'est le modèle que nous garderons.
+
+Pour rappel, voici le modèle :
+
+```{r}
+summary(mod_final)
 ```

@@ -745,7 +745,7 @@ lognorm.id_0 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimN
 summary(lognorm.id_0)
 ```
 
-```{}
+```         
 ```
 
 ```{r}
@@ -1285,7 +1285,7 @@ Les plus variables les plus intéressantes et significatives sont :
 
 D'autres variables ont également un impact mais leurs p valeurs sont beaucoup moins significatives comparées à ces trois variables. De plus, il est assez logique que le fait d'avoir eu plusieurs sinistres responsables, non responsables et des bris-de-glace les quatres années précédentes laisse à penser que notre assuré serait un "mauvais" conducteur et serait susceptible de rembourser cette année des montants supérieurs aux autres assurés.
 
-Vérifions quand même si les modèles proposés permettent de prédire correctement nos variables sur le jeu de donnée "test"
+Vérifions quand même si les modèles proposés permettent de prédire correctement nos variables sur le jeu de donnée "test".
 
 ## Prédiction et Estimation
 

@@ -116,7 +116,7 @@ plot(cout1$ClaimAmount)
 abline (a=35000,b=0, col ="blue")
 #Pour une étude non biaisée vers d'autres valeurs moins extrêmes, il serait également préferable de faire une étude sur des montants inférieurs à 35000€. Seulement sept observations ont été estimées supérieures à ce prix.
 
-cout2 <- subset(cout, cout$ClaimAmount <35000)
+cout2 <- subset(cout, cout$ClaimAmount <30000)
 hist(cout2$ClaimAmount)
 plot(cout2$ClaimAmount)
 ```
@@ -265,10 +265,10 @@ lower_bound_1 <- quantile(train$ClaimAmount, 0.25) - 1.5*iqr_1
 upper_bound_1 <- quantile(train$ClaimAmount, 0.75) + 1.5*iqr_1
 
 # Identifier les outliers
-outliers_tukey_valeurs_1 <- train$ClaimAmount[train$ClaimAmount < lower_bound | train$ClaimAmount > upper_bound]
+outliers_tukey_valeurs_1 <- train$ClaimAmount[train$ClaimAmount < lower_bound_1 | train$ClaimAmount > upper_bound_1]
 
 #On extrait les indices de ces outliers
-outliers_tukey_indices_1 <- which(train$ClaimAmount < lower_bound | train$ClaimAmount > upper_bound)
+outliers_tukey_indices_1 <- which(train$ClaimAmount < lower_bound_1 | train$ClaimAmount > upper_bound_1)
 
 # Afficher les résultats
 outliers_tukey_valeurs_1
@@ -431,17 +431,6 @@ summary(mod0_gamma_log_Tukey)
 ```
 
 ```{r}
-
-mod_gamma_log_Both_2 = step(gamma.log_Tukey_0, mod_gamma_log_2, trace=F,direction = c('both'))
-summary(mod_gamma_log_Both_2)
-
-summary(glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "log")))
-```
-
-```{r}
-
-glm(ClaimAmount ~ MariStat+SocioCateg+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout, offset = log(Exposure))
-
 modBoth_gamma_log_Tukey = step(gamma.log_Tukey, mod0_gamma_log_Tukey, trace=F,direction = c('both'))
 summary(modBoth_gamma_log_Tukey)
 
@@ -734,11 +723,6 @@ AIC(mod_invgauss.inv_Both)
 ## Loi Log Normale
 
 ```{r}
-mod0_invgauss_inv_Tukey_1 <- glm(ClaimAmount ~ 1, data = train_Tukey, family = inverse.gaussian(link = "inverse"))
-summary(mod0_invgauss_inv_Tukey_1)
-```
-
-```{r}
 modBoth_invgauss_inv_Tukey_1 = step(invgauss.inv_Tukey, mod0_invgauss_inv_Tukey_1, trace=F,direction = c('both'))
 summary(modBoth_invgauss_inv_Tukey_1)
 ```
@@ -749,16 +733,19 @@ summary(modBoth_invgauss_inv_Tukey_1)
 
 #### 1) Echantillon sans intéractions / ni outliers
 
+Modèle réduit à l'intercept :
+
+```{r}
+mod_lognorm.id_0 <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "inverse"))
+AIC(mod_lognorm.id_0)
+```
+
 ```{r}
 lognorm.id_0 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
 summary(lognorm.id_0)
 ```
 
-##### AIC
-
-```{r}
-mod_lognorm.id_0 <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "inverse"))
-AIC(mod_lognorm.id_0)
+```{}
 ```
 
 ```{r}
@@ -769,7 +756,7 @@ AIC(mod_lognorm.id_Both_0)
 #### 2) Echantillon avec intéractions / ni outliers
 
 ```{r}
-lognorm.id_1 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea+MariStat*ClaimNbResp+RiskArea*MariStat, data = train, family = gaussian(link = "identity"))
+lognorm.id_1 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+ClaimNbNonResp*ClaimNbResp, data = train, family = gaussian(link = "identity"))
 summary(lognorm.id_1)
 ```
 
@@ -777,25 +764,17 @@ Les intéraction ne sont pas signifcatives pour ce modèle. Nous allons donc con
 
 #### 3) Echantillon sans intéraction, avec étude d'outliers : Tukey
 
-### A) Lien identité
-
-#### 1) Echantillon sans outliers
-
 ```{r}
-lognorm.id_0 <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "identity"))
-summary(lognorm.id_0)
-```
-
-##### AIC
-
-```{r}
-mod_lognorm.id_Tukey <- glm(log(ClaimAmount) ~ 1, data = train_Tukey, family = gaussian(link = "inverse"))
-AIC(mod_lognorm.id_Tukey)
+mod0_invgauss_id_Tukey_1 <- glm(ClaimAmount ~ 1, data = train_Tukey, family = inverse.gaussian(link = "identity"))
+summary(mod0_invgauss_id_Tukey_1)
 ```
 
 ```{r}
-mod_lognorm.id_Both_Tukey = step(lognorm.id_Tukey, mod_lognorm.id_Tukey, trace=F,direction = c('both'))
-AIC(mod_lognorm.id_Both_Tukey)
+
+```
+
+```{r}
+
 ```
 
 ### B) Lien Log
@@ -806,8 +785,6 @@ AIC(mod_lognorm.id_Both_Tukey)
 lognorm.log <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = gaussian(link = "log"))
 summary(lognorm.log)
 ```
-
-##### AIC
 
 ```{r}
 mod_lognorm.log <- glm(log(ClaimAmount) ~ 1, data = train, family = gaussian(link = "log"))

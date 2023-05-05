@@ -135,7 +135,7 @@ glm_tree_lognorm_id_Tukey <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+
 plot(glm_tree_lognorm_id_Tukey)
 ```
 
-### A) Lien inverse
+### B)Lien inverse
 
 ```{r}
 
@@ -145,30 +145,50 @@ glm_tree_lognormale_inv <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+Ha
 plot(glm_tree_lognormale_inv)
 ```
 
+#### Avec methode Tukey
+
 ```{r}
 glm_tree_lognorm_inv_Tukey <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = train_Tukey, maxdepth = 7, family = gaussian(link = "inverse"))
 plot(glm_tree_lognorm_inv_Tukey)
 ```
 
+### C) Lien log
+
+```{r}
+
+glm_tree_lognormale_log <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data, maxdepth = 7, family = gaussian(link = "log"))
+
+plot(glm_tree_lognormale_log)
+```
+
+#### Avec methode Tukey
+
+```{r}
+glm_tree_lognorm_log_Tukey <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = train_Tukey, maxdepth = 7, family = gaussian(link = "log"))
+plot(glm_tree_lognorm_log_Tukey)
+```
+
 ## III) GLM tree Gamma
 
-### A) Lien identité
+### A) Lien inverse
 
 #### 1) Sur l'échantillon trainGLM.data
 
 ```{r}
-glm_tree_gamma_id <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
-  data = trainGLM.data, maxdepth = 7, family = Gamma(link = "identity"))
-plot(glm_tree_gamma_id)
+glm_tree_gamma_inv <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data, maxdepth = 7, family = Gamma(link = "inverse"))
+plot(glm_tree_gamma_inv)
 ```
 
 #### 2) Sur l'échantillon train_Tukey
 
 ```{r}
-glm_tree_gamma_id_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
-  data = train_Tukey, maxdepth = 7, family = Gamma(link = "identity"))
-plot(glm_tree_gamma_id_Tukey)
+glm_tree_gamma_inv_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = train_Tukey, maxdepth = 7, family = Gamma(link = "inverse"))
+plot(glm_tree_gamma_inv_Tukey)
 ```
 
 ### B) Lien log
@@ -188,19 +208,19 @@ glm_tree_gamma_log_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmL
 plot(glm_tree_gamma_log_Tukey)
 ```
 
-### B) Lien Inverse
+### C) Lien Identite
 
 ```{r}
-glm_tree_gamma_inv <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = Gamma(link = "inverse"))
-plot(glm_tree_gamma_inv)
+glm_tree_gamma_id <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = Gamma(link = "identity"))
+plot(glm_tree_gamma_id)
 ```
 
 #### Avec methode Tukey
 
 ```{r}
-glm_tree_gamma_inv_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
-  data = train_Tukey, maxdepth = 7, family = Gamma(link = "inverse"))
-plot(glm_tree_gamma_inv_Tukey)
+glm_tree_gamma_id_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = train_Tukey, maxdepth = 7, family = Gamma(link = "identity"))
+plot(glm_tree_gamma_id_Tukey)
 ```
 
 ## IV) GLM tree Inverse gaussienne

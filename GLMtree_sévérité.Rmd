@@ -126,6 +126,7 @@ mean_pred
 ### A) Lien inverse
 
 ```{r}
+<<<<<<< HEAD
 glm_tree_lognormale_inv <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = trainGLM.data, maxdepth = 2, family = gaussian(link = "inverse"))
 
@@ -205,4 +206,9 @@ plot(glm_tree_invgauss_log)
 
 glm_tree_invgauss_inv <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "inverse"))
 plot(glm_tree_invgauss_inv)
+=======
+glm_tree_gamma <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = trainGLM.data, maxdepth = 7, family = Gamma(link = "identity"))
+plot(glm_tree_gamma)
+>>>>>>> 6a6299ebd3703ffc068a11bf3da70d97cee8b51d
 ```

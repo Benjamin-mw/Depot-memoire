@@ -196,12 +196,8 @@ plot(glm_tree_gamma_inv_Tukey)
 ```{r}
 #On enregistre un vecteur de R^28 de valeurs initiales
 
-glm_tree_invgauss_mu <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "1/mu^2"),start=rep(10e-10))
+glm_tree_invgauss_mu <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "1/mu^2"),mob_control(start=rep(10e-10)))
 plot(glm_tree_invgauss)
-```
-
-```{r}
-packageVersion("partykit")
 ```
 
 #### Avec methode Tukey
@@ -245,3 +241,17 @@ plot(glm_tree_invgauss_inv)
 ```
 
 #### Avec methode Tukey
+
+```{r}
+
+```
+
+```{r}
+model_control <- glmtree_control(
+  family = inverse.gaussian(),
+  loss = "loglik",
+  maxdepth = 5,
+  minsplit = 10
+)
+glm_tree_invgauss_mu <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, control =model_control)
+```

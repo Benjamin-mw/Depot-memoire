@@ -1,0 +1,130 @@
+---
+title: "cartfreq"
+output: html_document
+date: "2023-04-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### CART FREQUENCE
+
+```{r}
+library(rpart)
+library(rpart.plot)
+library(sp)
+library(CASdatasets)
+library(pROC)
+library(ROCR)
+
+```
+
+```{r}
+data(freMPL5)
+
+#Prise en main des données
+
+#Création d'une variable de sinistralité
+freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
+freMPL5$Sinistres2 = round(freMPL5$Sinistres)
+#enlever les valeurs négatives
+freMPL5 <- subset(freMPL5, freMPL5$ClaimAmount >= 0)
+#passer en variables catégorielles
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+#segmentation des tranches d'âge
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+#Découpage CSP
+freMPL5$Categ <-  ifelse(freMPL5$SocioCateg %in% c("CSP46","CSP48"), "Categ1",
+ifelse(freMPL5$SocioCateg %in% c("CSP50","CSP55"), "Categ2",
+ifelse(freMPL5$SocioCateg %in% c("CSP60"),"Categ3",
+ifelse(freMPL5$SocioCateg %in% c("CSP42","CSP1", "CSP66"),"Categ4","Categ0"))))
+freMPL5$Categ = factor(freMPL5$Categ)
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+```
+
+
+
+```{r}
+
+#Séparation des données en échantillon d'entrainement et de test
+
+set.seed(191)
+perm <- sample(nrow(freMPL5),80/100*nrow(freMPL5))
+trainCartfreq.data <- freMPL5[perm,]
+testCartfreq.data  <- freMPL5[-perm,]
+```
+
+
+
+```{r}
+#élaboration de l'arbre "maximal" avec pré-élagage
+freMPL5.Tree.sinpois <- rpart(Sinistres2 ~  MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data=trainCartfreq.data, method="poisson", control=rpart.control(xval = 10, minbucket=1,maxdepth=10, cp=0))
+
+#affichage de l'arbre "maximal" avec pré-élagage
+
+rpart.plot(freMPL5.Tree.sinpois)
+
+```
+
+```{r}
+#MSE pour l'arbre pré-élagué
+predictionSinPoi2 <- predict(freMPL5.Tree.sinpois, newdata=testCartfreq.data)
+
+msesev2 <- mean((predictionSinPoi2 - testCartfreq.data$Sinistres2)^2)
+msesev2
+```
+
+```{r}
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp
+plotcp(freMPL5.Tree.sinpois)
+printcp(freMPL5.Tree.sinpois)
+```
+
+
+```{r}
+
+#étape d'élagage de l'arbre avec un cp choisi
+
+freMPL5.Tree.prune.sinpois=prune(freMPL5.Tree.sinpois,cp= 4.6494e-03)
+rpart.plot(freMPL5.Tree.prune.sinpois)
+```
+```{r}
+predictionSinPoi <- predict(freMPL5.Tree.prune.sinpois, newdata=testCartfreq.data)
+
+```
+
+```{r}
+
+#MSE pour l'arbre élagué final
+
+msesev <- mean((predictionSinPoi - testCartfreq.data$Sinistres2)^2)
+msesev
+```
+
+
+
+```{r}
+
+#RMSE
+
+rmse <- sqrt(msesev)
+rmse
+```
+
+```{r}
+#MAE
+MAEsev <- mean(abs(predictionSinPoi - testCartfreq.data$Sinistres2))
+MAEsev
+```
+
+```{r}
+#importance des variables dans l'arbre élagué pour la fréquence
+importance2 <- round(freMPL5.Tree.prune.sinpois$variable.importance/sum(freMPL5.Tree.prune.sinpois$variable.importance)*100, 2)
+importance2
+```

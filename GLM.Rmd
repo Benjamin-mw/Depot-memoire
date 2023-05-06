@@ -303,7 +303,7 @@ gamma.inv_0 <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+
 summary(gamma.inv_0)
 ```
 
-La commande "start =rep(0.01,28)" permet de donner une valeur inititale aux coefficients que l'on cherche à estimer. Sans cette commande, le code renvoie un message d'erreur
+La commande "start =rep(10e-10,28)" permet de donner une valeur inititale aux coefficients que l'on cherche à estimer. Sans cette commande, le code renvoie un message d'erreur
 
 Nous verrons par la suite que nos modèles appliqués aux données issues de la méthode d'Hampel et du Tukey nous permettent de palier ce problème.
 
@@ -747,13 +747,46 @@ summary(modBoth_lognorm_log_1)
 lognorm.log_Tukey <- glm(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+HasKmLimit*ClaimNbNonResp+ClaimNbNonResp*VehUsage, data = train_Tukey, family = gaussian(link = "log"))
 
 mod0_lognorm_log_Tukey_1 <- glm(log(ClaimAmount) ~ 1, data = train_Tukey, family = gaussian(link = "log"))
-modBoth_lognorm_log_Tukey_1 = step(lognorm.inv_Tukey, mod0_lognorm_log_Tukey_1, trace=F,direction = c('both'))
+modBoth_lognorm_log_Tukey_1 = step(lognorm.log_Tukey, mod0_lognorm_log_Tukey_1, trace=F,direction = c('both'))
 
 
 summary(lognorm.log_Tukey)
 summary(mod0_lognorm_log_Tukey_1)
 summary(modBoth_lognorm_log_Tukey_1)
 ```
+
+### D) Comparaison entre les modèles 
+
+Les modèles linéaires généralisés de la loi Log Normale converge. Leur critère d'AIC beaucoup plus faible que ceux des autres modèles et de nombreuses variables significatives dont la p-valeur est inférieure à 0.05 sont présentent dans les modèles. Regardons lequel des différents liens est le meilleur pour estimer la loi en comparant leur estimation et prédiction.
+
+```{r}
+split.screen(1:2)
+estimation_id <- modBoth_lognorm_id_1$fitted.values
+screen(1) ; hist(estimation_id)
+
+prediction_id <- predict.glm(modBoth_lognorm_id_1, newdata = test, type = "response")
+screen(2) ; hist(prediction_id)
+```
+
+```{r}
+split.screen(1:2)
+estimation_inv <- modBoth_lognorm_inv_1$fitted.values
+screen(1) ; hist(estimation_inv)
+
+prediction_inv <- predict.glm(modBoth_lognorm_inv_1, newdata = test, type = "response")
+screen(2) ; hist(prediction_inv)
+```
+
+```{r}
+split.screen(1:2)
+estimation_log <- modBoth_lognorm_log_1$fitted.values
+screen(1) ; hist(estimation_log)
+
+prediction_log <- predict.glm(modBoth_lognorm_log_1, newdata = test, type = "response")
+screen(2) ; hist(prediction_log)
+```
+
+On observe ainsi que le lien canonique (identité) de la loi Log Normale est le lien pour lequel l'estimation du modèle a une tendance plus ressemblante à la tendance de la prédiction du modèle. On va donc choisir ce candidat à comparer avec la loi Gamma pour le lien logarithme.
 
 # VII) Quelques critères
 
@@ -1048,34 +1081,68 @@ Vérifions quand même si les modèles proposés permettent de prédire correcte
 ## Prédiction et Estimation
 
 ```{r}
-#Pour le modèle Gamma
-estimation <- gamma.log_1$fitted.values
-hist(estimation)
+#Pour le modèle Gamma pour le lien logarithme
+split.screen(1:2)
+estimationGamma <- modBoth_gamma_log_1$fitted.values
+screen(1) ; hist(estimationGamma)
 
-prediction <- predict.glm(gamma.log_1, newdata = test, type = "response")
-hist(prediction)
-
-summary(estimation)
-summary(prediction)
+predictionGamma <- predict.glm(modBoth_gamma_log_1, newdata = test, type = "response")
+screen(2) ; hist(predictionGamma)
 ```
 
 On observe bien une tendance très proche entre l'estimation de nos données et la prédiction
 
 ```{r}
 # Pour la loi Log Normale au lien identité
-estimation <- lognorm.id_1$fitted.values
-hist(estimation)
+split.screen(1:2)
+estimationLogNormale <- modBoth_lognorm_log_1$fitted.values
+screen(1) ; hist(estimationLogNormale)
 
-prediction <- predict.glm(lognorm.id_1, newdata = test, type = "response")
-hist(prediction)
+predictionLogNormale <- predict.glm(modBoth_lognorm_log_1, newdata = test, type = "response")
+screen(2) ; hist(predictionLogNormale)
 
-summary(estimation)
-summary(prediction)
+```
+
+On observe que le GLM de la loi Gamma avec le lien logarithme est mieux ajuster au modèle de sévérité que le GLM de la loi Log Normale avec son lien canonique. Comparons quand même leur RMSE, MSE et MAE.
+
+### MSE
+
+```{r}
+#MSE de Gamma
+mseGamma <- mean((predictionGamma - test$ClaimAmount)^2)
+mseGamma
+```
+
+```{r}
+#MSE de Log Normale
+mseLogNormale <- mean((predictionLogNormale - test$ClaimAmount)^2)
+mseLogNormale
 ```
 
 ### RMSE
 
 ```{r}
-RMSE_train <- sqrt(mean(lognorm.id$residuals^2))
-RMSE_train
+#RMSE de Gamma
+rmseGamma <- sqrt(mseGamma)
+rmseGamma
+```
+
+```{r}
+#RMSE de Gamma
+rmseLogNormale <- sqrt(mseLogNormale)
+rmseLogNormale
+```
+
+### MAE
+
+```{r}
+#MSE de Gamma
+maeGamma <- mean(abs(predictionGamma - test$ClaimAmount))
+maeGamma
+```
+
+```{r}
+#MSE de Gamma
+maeLogNormale <- mean(abs(predictionLogNormale - test$ClaimAmount))
+maeLogNormale
 ```

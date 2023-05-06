@@ -104,16 +104,16 @@ train_Tukey=slice(trainGLM.data,-outliers_tukey_indices_1)
 ### A) Lien identité
 
 ```{r}
-glm_tree_lognormale_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree_lognorm_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = trainGLM.data, maxdepth = 7, family = gaussian(link = "identity"))
 
-plot(glm_tree_lognormale_id)
+plot(glm_tree_lognorm_id)
 ```
 
 Regardons les modèles obtenus à chacun des noeuds terminaux
 
 ```{r}
-summary(glm_tree_lognormale_id)
+summary(glm_tree_lognorm_id)
 ```
 
 Nous voyons que dans les modèles linéaires généralisés, nous trouvons des valeurs NA. Celles-ci sontaux variables manquantes du fait de l'embranchement de notre arbre. En effet, celles-ci sont associées à la variable seuil "DrivAge_fact" qui définit le premier embranchement de notre arbre. Celle-ci va créer deux sous-groupes. Le premier sous-groupe sera celui dans lequel la variable "DrivAge_fact" n'aura de valeur dans [(35,40],(45,50],(50,58],(65,120]] et le deuxième sous-groupe aura le reste des données
@@ -123,21 +123,21 @@ Contrairement à cette variable qualificative, la deuxième variable seuil est "
 Voyons ce qu'il se passe si l'on enlève la variable "DrivAge_fact"
 
 ```{r}
-glm_tree2_lognormale_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree2_lognorm_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = trainGLM.data, maxdepth = 7, family = gaussian(link = "identity"))
 
-plot(glm_tree2_lognormale_id)
+plot(glm_tree2_lognorm_id)
 ```
 
 ```{r}
-summary(glm_tree2_lognormale_id)
+summary(glm_tree2_lognorm_id)
 ```
 
 Comparons les AIC
 
 ```{r}
-AIC(glm_tree_lognormale_id)
-AIC(glm_tree2_lognormale_id)
+AIC(glm_tree_lognorm_id)
+AIC(glm_tree2_lognorm_id)
 ```
 
 On va plutôt garder le premier modèle
@@ -145,11 +145,11 @@ On va plutôt garder le premier modèle
 Remarque: si on garde le modèle avec juste les variables seuils, on a
 
 ```{r}
-glm_tree3_lognormale_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea|BonusMalus+DrivAge_fact,
+glm_tree3_lognorm_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea|BonusMalus+DrivAge_fact,
   data = trainGLM.data, maxdepth = 7, family = gaussian(link = "identity"))
 
-plot(glm_tree3_lognormale_id)
-AIC(glm_tree3_lognormale_id)
+plot(glm_tree3_lognorm_id)
+AIC(glm_tree3_lognorm_id)
 ```
 
 #### Avec méthode Tukey
@@ -325,7 +325,7 @@ plot(glm_tree_gamma_id_Tukey)
 Message d'erreur :
 
 ```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis 
+Error: impossible de trouver un jeu de coefficients correct : prière de fournir des valeurs initiales
 ```
 
 ## IV) GLM tree Inverse gaussienne
@@ -342,7 +342,7 @@ plot(glm_tree_invgauss)
 Message d'erreur :
 
 ```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis :  
+Error: impossible de trouver un jeu de coefficients correct : prière de fournir des valeurs initiales 
 ```
 
 #### Avec methode Tukey
@@ -356,13 +356,12 @@ plot(glm_tree_invgauss_mu_Tukey)
 Message d'erreur :
 
 ```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis 
+Error: impossible de trouver un jeu de coefficients correct : prière de fournir des valeurs initiales 
 ```
 
 ### B) Lien identité
 
 ```{r}
-#On enregistre un vecteur de R^28 de valeurs initiales
 
 glm_tree_invgauss_id <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "identity"))
 plot(glm_tree_invgauss_mu)
@@ -371,7 +370,8 @@ plot(glm_tree_invgauss_mu)
 Message d'erreur :
 
 ```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis 
+Error in glm.fit(x = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, :
+NA/NaN/Inf dans 'x'
 ```
 
 trainGLM.data n'ayant pas de valeurs NA/NaN/Inf (l'algorithme fonctionnant pour d'autres lois et d'autres liens), on en conclut que la loi inverse gaussienne avec le lien identité ne fit tout simplement pas à notre échantillon de données
@@ -387,7 +387,8 @@ plot(glm_tree_invgauss_id_Tukey)
 Message d'erreur :
 
 ```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis 
+Error in glm.fit(x = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, :
+NA/NaN/Inf dans 'x'
 ```
 
 ### C) Lien log
@@ -401,7 +402,7 @@ plot(glm_tree_invgauss_log)
 Message d'erreur :
 
 ```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis 
+Error: boucle interne 1 ; impossible de corriger le pas
 ```
 
 #### Avec methode Tukey
@@ -415,7 +416,7 @@ plot(glm_tree_invgauss_log_Tukey)
 Message d'erreur :
 
 ```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis 
+Error: boucle interne 1 ; impossible de corriger le pas
 ```
 
 ### D) Lien inverse
@@ -430,7 +431,8 @@ plot(glm_tree_invgauss_inv)
 Message d'erreur :
 
 ```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis 
+Error in glm.fit(x = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, :
+NA/NaN/Inf dans 'x' 
 ```
 
 #### Avec methode Tukey
@@ -449,10 +451,26 @@ AIC(glm_tree_invgauss_inv_Tukey)
 
 # Arbre GLM final
 
-De notre échantillon d'entraînement sans la méthode d'outlier, un seul modèle est exploitable et correspond à l'arbre GLM de la loi Log Normale
+De notre échantillon d'entraînement sans la méthode d'outlier, un seul modèle est exploitable et correspond à l'arbre GLM de la loi Log Normale.
+
+## MSE
 
 ```{r}
-predglmT <- predict(glm_tree_lognormale_id, newdata = testGLM.data)
+predglmT <- predict(glm_tree_lognorm_id, newdata = testGLM.data)
 mse <- mean((predglmT - testGLM.data$ClaimAmount)^2)
 mse
+```
+
+## RMSE
+
+```{r}
+rmse <- sqrt(mse)
+rmse
+```
+
+## MAE
+
+```{r}
+mae <- mean(abs(predglmT - testGLM.data$ClaimAmount))
+mae
 ```

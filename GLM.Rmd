@@ -755,7 +755,7 @@ summary(mod0_lognorm_log_Tukey_1)
 summary(modBoth_lognorm_log_Tukey_1)
 ```
 
-### D) Comparaison entre les modèles 
+### D) Comparaison entre les modèles
 
 Les modèles linéaires généralisés de la loi Log Normale converge. Leur critère d'AIC beaucoup plus faible que ceux des autres modèles et de nombreuses variables significatives dont la p-valeur est inférieure à 0.05 sont présentent dans les modèles. Regardons lequel des différents liens est le meilleur pour estimer la loi en comparant leur estimation et prédiction.
 

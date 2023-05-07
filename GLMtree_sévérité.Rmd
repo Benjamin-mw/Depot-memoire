@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(zoo)
+library(xts)
 library(rpart)
 library(rpart.plot)
 library(sp)
@@ -104,7 +106,7 @@ train_Tukey=slice(trainGLM.data,-outliers_tukey_indices_1)
 ### A) Lien identité
 
 ```{r}
-glm_tree_lognormale_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree_lognormale_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = trainGLM.data, maxdepth = 7, family = gaussian(link = "identity"))
 
 plot(glm_tree_lognormale_id)
@@ -292,4 +294,13 @@ plot(glm_tree_invgauss_inv)
 glm_tree_invgauss_inv_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = train_Tukey, maxdepth = 15, family = inverse.gaussian(link = "inverse"))
 plot(glm_tree_invgauss_inv_Tukey)
+```
+
+# Partie test code
+
+```{r}
+library(partykit)
+
+glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+  data = train_Tukey, maxdepth = 7, family = inverse.gaussian(link = "1/mu^2"),ctree_controls = partykit::ctree_control(minbucket = 10))
 ```

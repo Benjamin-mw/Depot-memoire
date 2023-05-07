@@ -93,7 +93,7 @@ Nous allons faire un système à double pénalisation, "BonusMalus" sera pris en
 
 ## II) Première estimation de la loi de notre variable "ClaimAmount"
 
-```{r, error = TRUE}
+```{r}
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
 ```
 
@@ -139,14 +139,16 @@ abline (a=0,b=1, col ="red")
 
 La loi gamma semble très bien s'adapter à notre modèle. De plus, une divergence avec la loi est observée lorsque les valeurs sont supérieures à 35 000. Cela nous maintient dans l'idée d'étudier notre jeu de données aux montants inférieurs à 35000.
 
-```{r}
-qqplot (cout$ClaimAmount, qnorm ( ppoints (cout$ClaimAmount,3/8), mean =mean(cout$ClaimAmount), sd =sqrt(var(cout$ClaimAmount))),
+```{r, error = TRUE}
+#Approche par la loi log normale
+fit_params <- fitdistr(cout$ClaimAmount,"ginv")
+qqplot (cout$ClaimAmount, qinv ( ppoints (cout$ClaimAmount,3/8), shape = fit_params$estimate['shape']),
         	xlab ="Prix des sinistres observés",
-        main ="Graphique des quantiles pour les prix des sinistres (loi normale).")
+        main ="Graphique des quantiles pour les prix des sinistres (loi log normale).")
 abline (a=0,b=1, col ="red")
 ```
 
-La loi normale ne semble pas être très adaptée à notre modèle
+La loi normale ne semble pas s'adaptér à notre modèle
 
 ```{r}
 #Approche par la loi log normale
@@ -156,6 +158,8 @@ qqplot (cout2$ClaimAmount, qlnorm ( ppoints (cout2$ClaimAmount,3/8), mean = fit_
         main ="Graphique des quantiles pour les prix des sinistres (loi log normale).")
 abline (a=0,b=1, col ="red")
 ```
+
+La loi Log Normale s'ajuste assez bien sur nos données
 
 ### b)Séparation en échantillon apprentissage et échantillon test
 
@@ -187,13 +191,13 @@ borne_sup
 #On renvoie les indices des outliers potentiels
 
 indices_outliers <- which(train$ClaimAmount < borne_inf | train$ClaimAmount > borne_sup)
-indices_outliers
-length(indices_outliers)
+#indices_outliers
+#length(indices_outliers)
 
 #On renvoie les valeurs prises par nos outliers
 
 valeurs_outliers <- train[indices_outliers,"ClaimAmount"]
-valeurs_outliers
+#valeurs_outliers
 
 #Puis on retire les outliers de notre échantillon
 
@@ -218,14 +222,6 @@ gamma.inv_Hampel <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNb
 summary(gamma.inv_Hampel)
 ```
 
-```{r}
-gamma.log_Hampel <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+BonusMalus*Categ, data = train_Hampel, family = Gamma(link = "log"))
-summary(gamma.log_Hampel)
-
-gamma.id_Hampel <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel, family = Gamma(link = "identity"))
-summary(gamma.id_Hampel)
-```
-
 #### b) Méthode de Tukey combiné à la méthode d'Hampel
 
 Cette méthode se base sur l'écart interquartile et permet de détecter de potentiels outliers
@@ -245,9 +241,9 @@ outliers_tukey_valeurs <- train_Hampel$ClaimAmount[train_Hampel$ClaimAmount < lo
 outliers_tukey_indices <- which(train_Hampel$ClaimAmount < lower_bound | train_Hampel$ClaimAmount > upper_bound)
 
 # Afficher les résultats
-outliers_tukey_valeurs
-length(outliers_tukey_valeurs)
-outliers_tukey_indices
+  #outliers_tukey_valeurs
+  #length(outliers_tukey_valeurs)
+  #outliers_tukey_indices
 
 #On enlèves ces outliers de notre échantillon 
 
@@ -271,9 +267,9 @@ outliers_tukey_valeurs_1 <- train$ClaimAmount[train$ClaimAmount < lower_bound_1 
 outliers_tukey_indices_1 <- which(train$ClaimAmount < lower_bound_1 | train$ClaimAmount > upper_bound_1)
 
 # Afficher les résultats
-outliers_tukey_valeurs_1
-length(outliers_tukey_valeurs_1)
-outliers_tukey_indices_1
+  #outliers_tukey_valeurs_1
+  #length(outliers_tukey_valeurs_1)
+  #outliers_tukey_indices_1
 
 #On enlèves ces outliers de notre échantillon 
 
@@ -325,9 +321,8 @@ mod0_gamma_inv_0 <- glm(ClaimAmount ~ 1, data = train, family = Gamma(link = "in
 AIC(mod0_gamma_inv_0)
 ```
 
-```{r}
+```{r, error = TRUE}
 modBoth_gamma_inv_1 = step(gamma.inv_1, mod0_gamma_inv_0, trace=F,direction = c('both'), start=rep(10e-10,29))
-summary(modBoth_gamma_inv_1)
 ```
 
 Nous ne nous éterniserons pas davantage sur ce message d'erreur. En effet, cela marchera davantage avec d'autres données
@@ -409,13 +404,6 @@ L'apparition de nombreuses variables significatives à notre modèle (dont la p 
 abs(AIC(modBoth_gamma_log_1)-AIC(mod0_gamma_log_1))
 ```
 
-##### RMSE
-
-```{r}
-RMSE_train <- sqrt(mean(modBoth_gamma_log_1$residuals^2))
-RMSE_train
-```
-
 #### 3) Echantillon avec étude d'outliers et intéractions : Tukey
 
 ```{r}
@@ -434,13 +422,6 @@ summary(modBoth_gamma_log_Tukey)
 
 ```
 
-##### RMSE
-
-```{r}
-RMSE_train_Tukey_log <- sqrt(mean(modBoth_gamma_log_Tukey$residuals^2))
-RMSE_train_Tukey_log
-```
-
 ### B) Lien Identité
 
 #### 1) Echantillon sans outliers / sans intéraction
@@ -452,7 +433,6 @@ AIC(mod0_gamma_id_0)
 
 ```{r}
 gamma.id_0 <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = Gamma(link = "identity"))
-summary(gamma.id_0)
 ```
 
 ```{r}
@@ -466,7 +446,6 @@ Le modèle a divergé, il ne sera pas nécessaire d'effectuer la méthode Both d
 
 ```{r}
 gamma.id_1 <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+RiskArea*ClaimNbWindscreen,data = train, family = Gamma(link = "identity"),start =rep(10e-10,31))
-summary(gamma.id_1)
 ```
 
 L'algorithme ne converge toujours pas. Nous allons maintenant nous intéresser à l'étude des outliers afin de résoudre ce problème de divergence
@@ -483,7 +462,7 @@ mod0_gamma_id_Tukey <- glm(ClaimAmount ~ 1, data = train_Tukey, family = Gamma(l
 AIC(mod0_gamma_id_Tukey)
 
 modBoth_gamma_id_Tukey = step(gamma.log_Tukey, mod0_gamma_log_Tukey, trace=F,direction = c('both'))
-summary(modBoth_gamma_id_Tukey)
+AIC(modBoth_gamma_id_Tukey)
 ```
 
 ## Prediction du meilleur modèle
@@ -493,10 +472,11 @@ Parmi les différents liens de la loi Gamma, le lien logarithme est celui qui ne
 Nous allons voir maintenant si le modèle trouvé est adapté à notre échantillon "test".
 
 ```{r}
+split.screen(1:2)
 prediction <- predict.glm(gamma.log_1, newdata = test, type = "response")
-hist(prediction)
+screen(1); hist(prediction)
 estimation <- gamma.log_1$fitted.values
-hist(estimation)
+screen(2) ; hist(estimation)
 
 ```
 
@@ -551,12 +531,12 @@ invgauss.mu_Tukey$converged
 
 #### 1) Echantillon sans outliers / sans interactions
 
-```{r}
+```{r, error = TRUE}
 invgauss.id <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "identity"),na.action = na.exclude)
 #(na.action = na.exclude) permet d'effectuer le GLM sans prendre compte des possibles données manquantes de notre échantillon train
 ```
 
-```{r}
+```{r, error = TRUE}
 invgauss.inv <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "inverse"),na.action = na.exclude)
 ```
 
@@ -576,7 +556,7 @@ print(NaMiss)
 
 Voyons pour le lien "log"
 
-```{r}
+```{r, error = TRUE}
 invgauss.log <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train, family = inverse.gaussian(link = "log"))
 ```
 
@@ -586,12 +566,12 @@ Essayons de voir s'il est possible d'obtenir des GLM à l'aide des méthodes des
 
 #### 2)Echantillon avec outliers
 
-```{r}
+```{r, error = TRUE}
 invgauss.id_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel_Tukey, family = inverse.gaussian(link = "identity"),na.action = na.exclude)
 
 ```
 
-```{r}
+```{r, error = TRUE}
 invgauss.log_Tukey <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = train_Hampel_Tukey, family = inverse.gaussian(link = "log"),na.action = na.exclude)
 
 ```
@@ -607,13 +587,15 @@ summary(invgauss.inv_Tukey)
 #### a) Comparaison entre Modèle plein et vide
 
 ```{r}
+#Modèle réduit à l'intercept
 mod0_invgauss_inv_Tukey_1 <- glm(ClaimAmount ~ 1, data = train_Tukey, family = inverse.gaussian(link = "inverse"))
 AIC(mod0_invgauss_inv_Tukey_1)
 ```
 
 ```{r}
+#modèle avec la méthode "forward"
 modBoth_invgauss_inv_Tukey_1 = step(invgauss.inv_Tukey, mod0_invgauss_inv_Tukey_1, trace=F,direction = c('both'))
-summary(modBoth_invgauss_inv_Tukey_1)
+AIC(modBoth_invgauss_inv_Tukey_1)
 ```
 
 ## VI) Loi Log Normale
@@ -1061,6 +1043,8 @@ round(-2*as.numeric(logLik(lognorm.log_Tukey)))
   #modèle both
 round(-2*as.numeric(logLik(modBoth_lognorm_log_Tukey_1)))
 ```
+
+Les résultats sont disponibles dans la table 5.2 de notre mémoire. On constate que le modèle plein de la loi Gamma assoviée au lien logarithme apporte une meilleure différence avec le modèle vide que ce soit pour les critères d'AIC, de deviance ou de LogLikelihood. Puis, il y a le modèle plein de la loi Log Normale.
 
 # Modèle final
 

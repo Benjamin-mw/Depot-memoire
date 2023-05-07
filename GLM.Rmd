@@ -116,7 +116,7 @@ plot(cout1$ClaimAmount)
 abline (a=35000,b=0, col ="blue")
 #Pour une étude non biaisée vers d'autres valeurs moins extrêmes, il serait également préferable de faire une étude sur des montants inférieurs à 35000€. Seulement sept observations ont été estimées supérieures à ce prix.
 
-cout2 <- subset(cout, cout$ClaimAmount <35000)
+cout2 <- subset(cout, cout$ClaimAmount <30000)
 hist(cout2$ClaimAmount)
 plot(cout2$ClaimAmount)
 ```
@@ -484,7 +484,7 @@ Nous observons que la prédiction de notre modèle sur l'échantillon test à un
 
 La loi Gamma avec la fonction de lien logarithme est donc un bon potentiel candidat pour notre modèle linéaire généralisé final.
 
-## ) Loi Gaussienne Inverse
+## V) Loi Gaussienne Inverse
 
 ### A) Lien 1/mu\^2
 
@@ -498,8 +498,8 @@ invgauss.mu_0 <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbRes
 Apparition d'un problème de divergence, voyons si le modèle vide est aussi divergeant
 
 ```{r}
-mod_invgauss_mu_0 <- glm(ClaimAmount ~ 1, data = train, family = inverse.gaussian(link = "1/mu^2"))
-AIC(mod_invgauss_mu_0)
+mod0_invgauss_mu_1 <- glm(ClaimAmount ~ 1, data = train, family = inverse.gaussian(link = "1/mu^2"))
+AIC(mod0_invgauss_mu_1)
 ```
 
 #### 2) Echantillon sans outliers / avec interactions
@@ -822,18 +822,6 @@ round(deviance(modBoth_gamma_id_Tukey))
 
 ### Loi Inverse Gaussienne
 
-Pour la fonction de lien "1/mu\^2" :
-
-```{r}
-#Avec méthode de Tukey et avec intéractions
-  #modèle réduit à l'intercept
-deviance(mod0_invgauss_mu_Tukey_1)
-  #modèle plein
-deviance(invgauss.mu_Tukey)
-  #modèle both
-deviance(modBoth_invgauss_mu_Tukey_1)
-```
-
 Pour la fonction de lien "inverse" :
 
 ```{r}
@@ -957,18 +945,6 @@ round(-2*as.numeric(logLik(modBoth_gamma_id_Tukey)))
 ```
 
 ### Loi Inverse Gaussienne
-
-Pour la fonction de lien "1/mu\^2" :
-
-```{r}
-#Avec méthode de Tukey et avec intéractions
-  #modèle réduit à l'intercept
-round(-2*as.numeric(logLik(mod0_invgauss_mu_Tukey_1)))
-  #modèle plein
-round(-2*as.numeric(logLik(invgauss.mu_Tukey)))
-  #modèle both
-round(-2*as.numeric(logLik(modBoth_invgauss_mu_Tukey_1)))
-```
 
 Pour la fonction de lien "inverse" :
 

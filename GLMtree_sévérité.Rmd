@@ -146,9 +146,13 @@ Remarque: si on garde le modèle avec juste les variables seuils, on a
 
 ```{r}
 glm_tree3_lognorm_id <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea|BonusMalus+DrivAge_fact,
-  data = trainGLM.data, maxdepth = 7, family = gaussian(link = "identity"))
+  data = trainGLM.data, maxdepth = 3, family = gaussian(link = "identity"))
 
 plot(glm_tree3_lognorm_id)
+summary(glm_tree3_lognorm_id)
+```
+
+```{r}
 AIC(glm_tree3_lognorm_id)
 ```
 
@@ -161,9 +165,10 @@ plot(glm_tree_lognorm_id_Tukey)
 ```
 
 ```{r}
-glm_tree2_lognorm_id_Tukey <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree2_lognorm_id_Tukey <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|OutUseNb+BonusMalus,
   data = train_Tukey, maxdepth = 7, family = gaussian(link = "identity"))
 plot(glm_tree2_lognorm_id_Tukey)
+AIC(glm_tree2_lognorm_id_Tukey)
 ```
 
 ```{r}
@@ -187,9 +192,19 @@ Présence d'un arbre avec un seul noeud et dont l'AIC est supérieur à celui po
 AIC(glm_tree_lognorm_inv)
 ```
 
+Regardons l'arbre donné par les variables seuils de Tukey
+
+```{r, error = TRUE}
+glm_tree2_lognorm_inv <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+ClaimNbResp+RiskArea+DrivAge_fact+ClaimNbNonResp+RiskArea+DrivAge_fact|BonusMalus+OutUseNb,
+  data = trainGLM.data, maxdepth = 7, family = gaussian(link = "inverse"))
+plot(glm_tree2_lognorm_inv)
+```
+
+Apparition d'un message d'erreur
+
 #### Avec methode Tukey
 
-```{r}
+```{r, error = TRUE}
 glm_tree_lognorm_inv_Tukey <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
   data = train_Tukey, maxdepth = 7, family = gaussian(link = "inverse"))
 plot(glm_tree_lognorm_inv_Tukey)
@@ -202,6 +217,16 @@ Error in root.matrix(switch(vcov, opg = chol2inv(chol(meat)), info = bread,  :
   Matrix is not positive semidefinite
 ```
 
+Regardons l'arbre quand les variables n'apparaissent qu'une seul fois
+
+```{r, error = TRUE}
+glm_tree2_lognorm_inv_Tukey <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|OutUseNb+BonusMalus,
+  data = train_Tukey, maxdepth = 7, family = gaussian(link = "inverse"))
+plot(glm_tree2_lognorm_inv_Tukey)
+```
+
+Le même message d'erreur apparaît
+
 ### C) Lien log
 
 ```{r, error = TRUE}
@@ -212,11 +237,20 @@ glm_tree_lognorm_log <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKm
 plot(glm_tree_lognorm_log)
 ```
 
-```{r}
-AIC(glm_tree_lognorm_log)
+```{r, error = TRUE}
+
+glm_tree2_lognorm_log <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|OutUseNb+BonusMalus,
+  data = trainGLM.data, maxdepth = 7, family = gaussian(link = "log"))
+
+plot(glm_tree2_lognorm_log)
 ```
 
-Encore un autre arbre GLM avec un seul noeud et dont le critère AIC est supérieur à celui du lien canonique
+```{r}
+AIC(glm_tree_lognorm_log)
+AIC(glm_tree2_lognorm_log)
+```
+
+On va donc prendre
 
 #### Avec methode Tukey
 
@@ -227,7 +261,14 @@ plot(glm_tree_lognorm_log_Tukey)
 ```
 
 ```{r}
+glm_tree2_lognorm_log_Tukey <- glmtree(log(ClaimAmount) ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|OutUseNb+BonusMalus,
+  data = train_Tukey, maxdepth = 7, family = gaussian(link = "log"))
+plot(glm_tree2_lognorm_log_Tukey)
+```
+
+```{r}
 AIC(glm_tree_lognorm_log_Tukey)
+AIC(glm_tree2_lognorm_log_Tukey)
 ```
 
 ## III) GLM tree Gamma
@@ -237,8 +278,9 @@ AIC(glm_tree_lognorm_log_Tukey)
 #### 1) Sur l'échantillon trainGLM.data
 
 ```{r, error = TRUE}
-glm_tree_gamma_inv <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree_gamma_inv <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+RiskArea+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+DrivAge_fact|ClaimNbResp+ClaimNbNonResp+OutUseNb+BonusMalus,
   data = trainGLM.data, maxdepth = 7, family = Gamma(link = "inverse"))
+plot(glm_tree_gamma_inv)
 ```
 
 Apparition du message :
@@ -247,7 +289,7 @@ Apparition du message :
 Error: impossible de trouver un jeu de coefficients correct : prière de fournir des valeurs initiales
 ```
 
-De la même façon que notre code pour les GLM nous avons essayé d'affecter des valeurs initiales mais aucun résultat n'a abouti.
+De la même façon que notre code pour les GLM nous avons essayé d'affecter des valeurs initiales mais aucun résultat n'a abouti. Nous avons testé d'autres arbres mais ceux-ci renvoient aussi la même erreur et un arbre d'un seul noeud
 
 #### 2) Sur l'échantillon train_Tukey
 
@@ -258,7 +300,14 @@ plot(glm_tree_gamma_inv_Tukey)
 ```
 
 ```{r}
+glm_tree2_gamma_inv_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|ClaimNbResp,
+  data = train_Tukey, maxdepth = 7, family = Gamma(link = "inverse"))
+plot(glm_tree_gamma_inv_Tukey)
+```
+
+```{r}
 AIC(glm_tree_gamma_inv_Tukey)
+AIC(glm_tree2_gamma_inv_Tukey)
 ```
 
 ### B) Lien log
@@ -279,7 +328,7 @@ glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas conv
 Enlevons les variables seuils:
 
 ```{r}
-glm_tree2_gamma_log <- glmtree(ClaimAmount ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree2_gamma_log <- glmtree(ClaimAmount ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus|Categ+DrivAge_fact,
   data = trainGLM.data, maxdepth = 7, family = Gamma(link = "log"))
 plot(glm_tree2_gamma_log)
 ```
@@ -289,22 +338,24 @@ De la même manière, nous obtenons un arbre GLM mais aussi le même message d'e
 #### Avec methode Tukey
 
 ```{r}
-glm_tree_gamma_log_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree_gamma_log_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|Categ+DrivAge_fact,
   data = train_Tukey, maxdepth = 7, family = Gamma(link = "log"))
 plot(glm_tree_gamma_log_Tukey)
 ```
 
-Message d'erreur :
+Apparition d'un arbre à un seul noeud
 
-```         
-Avis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergéAvis : glm.fit: l'algorithme n'a pas convergé
+```{r}
+summary(glm_tree_gamma_log_Tukey)
 ```
 
 ### C) Lien Identite
 
 ```{r, error = TRUE}
-glm_tree_gamma_id <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = Gamma(link = "identity"))
+glm_tree_gamma_id <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact| OutUseNb+BonusMalus, data = trainGLM.data, maxdepth = 7, family = Gamma(link = "identity"))
 ```
+
+Peu importe les arbres que nous ferons, nous avons ce message d'erreur ou le message d'erreur suivant
 
 Message d'erreur :
 
@@ -314,8 +365,8 @@ Error: impossible de trouver un jeu de coefficients correct : prière de fournir
 
 #### Avec methode Tukey
 
-```{r}
-glm_tree_gamma_id_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+```{r, error = TRUE}
+glm_tree_gamma_id_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact| OutUseNb+BonusMalus,
   data = train_Tukey, maxdepth = 7, family = Gamma(link = "identity"))
 plot(glm_tree_gamma_id_Tukey)
 ```
@@ -331,9 +382,8 @@ Avis : NaNs producedAvis : le pas a été tronqué à cause de la divergenceAvis
 ### A) Lien 1/mu\^2
 
 ```{r, error = TRUE}
-#On enregistre un vecteur de R^28 de valeurs initiales
 
-glm_tree_invgauss_mu <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "1/mu^2"))
+glm_tree_invgauss_mu <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|ClaimNbResp+OutUseNb+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "1/mu^2"))
 ```
 
 Message d'erreur :
@@ -345,7 +395,7 @@ Error: impossible de trouver un jeu de coefficients correct : prière de fournir
 #### Avec methode Tukey
 
 ```{r, error = TRUE}
-glm_tree_invgauss_mu_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree_invgauss_mu_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|ClaimNbResp+OutUseNb+BonusMalus+DrivAge_fact,
   data = train_Tukey, maxdepth = 7, family = inverse.gaussian(link = "1/mu^2"))
 ```
 
@@ -359,10 +409,10 @@ Error: impossible de trouver un jeu de coefficients correct : prière de fournir
 
 ```{r, error = TRUE}
 
-glm_tree_invgauss_id <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "identity"))
+glm_tree_invgauss_id <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|ClaimNbResp+OutUseNb+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "identity"))
 ```
 
-Message d'erreur :
+De la même façon, nous obtenons quelques soient l'arbre le message d'erreur suivant:
 
 ```         
 Error in glm.fit(x = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, :
@@ -374,7 +424,7 @@ trainGLM.data n'ayant pas de valeurs NA/NaN/Inf (l'algorithme fonctionnant pour 
 #### Avec methode Tukey
 
 ```{r, error = TRUE}
-glm_tree_invgauss_id_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree_invgauss_id_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|ClaimNbResp+OutUseNb+BonusMalus+DrivAge_fact,
   data = train_Tukey, maxdepth = 15, family = inverse.gaussian(link = "identity"))
 ```
 
@@ -389,7 +439,7 @@ NA/NaN/Inf dans 'x'
 
 ```{r, error = TRUE}
 
-glm_tree_invgauss_log <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "log"))
+glm_tree_invgauss_log <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|ClaimNbResp+OutUseNb+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "log"))
 ```
 
 Message d'erreur :
@@ -401,7 +451,7 @@ Error: boucle interne 1 ; impossible de corriger le pas
 #### Avec methode Tukey
 
 ```{r, error = TRUE}
-glm_tree_invgauss_log_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+glm_tree_invgauss_log_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|ClaimNbResp+OutUseNb+BonusMalus+DrivAge_fact,
   data = train_Tukey, maxdepth = 7, family = inverse.gaussian(link = "log"))
 ```
 
@@ -415,7 +465,7 @@ Error: boucle interne 1 ; impossible de corriger le pas
 
 ```{r, error = TRUE}
 
-glm_tree_invgauss_inv <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "inverse"))
+glm_tree_invgauss_inv <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|ClaimNbResp+OutUseNb+BonusMalus+DrivAge_fact, data = trainGLM.data, maxdepth = 7, family = inverse.gaussian(link = "inverse"))
 
 ```
 
@@ -428,26 +478,20 @@ NA/NaN/Inf dans 'x'
 
 #### Avec methode Tukey
 
-```{r}
-glm_tree_invgauss_inv_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact|MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+```{r,error=TRUE}
+glm_tree_invgauss_inv_Tukey <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+RiskArea+DrivAge_fact|ClaimNbResp+OutUseNb+BonusMalus,
   data = train_Tukey, maxdepth = 15, family = inverse.gaussian(link = "inverse"))
 plot(glm_tree_invgauss_inv_Tukey)
 ```
 
-Nous trouvons un arbre GLM avec un seul noeud
-
-```{r}
-AIC(glm_tree_invgauss_inv_Tukey)
-```
-
 # Arbre GLM final
 
-De notre échantillon d'entraînement sans la méthode d'outlier, un seul modèle est exploitable et correspond à l'arbre GLM de la loi Log Normale.
+De notre échantillon d'entraînement sans la méthode d'outlier, un seul modèle est exploitable et correspond à l'arbre GLM de la loi Log Normale. Parmi les différentes fonctions de lien proposé, le lien identité donne le meilleur arbre pour les AIC
 
 ## MSE
 
 ```{r}
-predglmT <- predict(glm_tree_lognorm_id, newdata = testGLM.data)
+predglmT <- predict(glm_tree3_lognorm_id, newdata = testGLM.data)
 mse <- mean((predglmT - testGLM.data$ClaimAmount)^2)
 mse
 ```

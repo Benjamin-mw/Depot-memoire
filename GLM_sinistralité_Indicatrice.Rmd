@@ -872,3 +872,13 @@ Pour rappel, voici le modèle :
 ```{r}
 summary(mod_final)
 ```
+
+```{r}
+mse = sqrt(mean(abs(train$Sinistres2 - mod_final$fitted.values)))
+mse
+```
+
+```{r}
+rmse = sqrt(mean((train$Sinistres2 - mod_final$fitted.values)^2))
+rmse
+```

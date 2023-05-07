@@ -832,11 +832,26 @@ hist(estimation)
 
 ### Utilisation de métriques de comparaison
 
+#### MSE
+
+```{r}
+prediction = predict.glm(mod_final, newdata = test, type = "response")
+mse = mean((prediction - test$Sinistres2)^2)
+mse
+```
+
 #### RMSE
 
 ```{r}
-RMSE_train <- sqrt(mean(mod_final$residuals^2))
-RMSE_train
+rmse = sqrt(mse)
+rmse
+```
+
+#### MAE
+
+```{r}
+mae = mean(abs(prediction - test$Sinistres2))
+mae
 ```
 
 ### Table de confusion
@@ -871,14 +886,4 @@ Pour rappel, voici le modèle :
 
 ```{r}
 summary(mod_final)
-```
-
-```{r}
-mse = sqrt(mean(abs(train$Sinistres2 - mod_final$fitted.values)))
-mse
-```
-
-```{r}
-rmse = sqrt(mean((train$Sinistres2 - mod_final$fitted.values)^2))
-rmse
 ```

@@ -1,0 +1,71 @@
+---
+title: "Calcul_Prime_Pure"
+author: "Dudot Lucas - Lapaz Eudes - Moinard Benjamin - Nanoux Louis"
+date: "2023-05-08"
+output: html_document
+---
+
+```{r echo= FALSE}
+library(rpart)
+library(rpart.plot)
+library(sp)
+library(CASdatasets)
+library(party)
+library(partykit)
+library(ROCR)
+library(vcd)
+```
+
+```{r echo = FALSE}
+data(freMPL5)
+#Création d'une variable de sinistralité
+freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
+freMPL5$Sinistres2 = round(freMPL5$Sinistres)
+
+#passer en variables catégorielles
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+
+#segmentation des tranches d'âge
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+
+#Découpage CSP
+freMPL5$Categ <-  ifelse(freMPL5$SocioCateg %in% c("CSP46","CSP48"), "Categ1",
+ifelse(freMPL5$SocioCateg %in% c("CSP50","CSP55"), "Categ2",
+ifelse(freMPL5$SocioCateg %in% c("CSP60"),"Categ3",
+ifelse(freMPL5$SocioCateg %in% c("CSP42","CSP1", "CSP66"),"Categ4","Categ0"))))
+freMPL5$Categ = factor(freMPL5$Categ)
+
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+```
+
+```{r echo = FALSE}
+set.seed(123) 
+train.index <- sample(1:nrow(freMPL5), size=0.8*nrow(freMPL5), replace=FALSE)
+train <- freMPL5[train.index,]
+test <- freMPL5[-train.index,]
+```
+
+# Sévérité : modélisation finale
+
+Nous rappelons le modèle de sévérité obtenu par **modélisation GLM**.
+
+```{r}
+
+```
+
+# Fréquence : modélisation finale
+
+Nous rappelons le modèle de fréquence obtenu par **modélisation en arbre GLM.**
+
+```{r}
+
+```
+
+# Exemples de primes

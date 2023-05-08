@@ -82,7 +82,7 @@ printcp(freMPL5.Tree.Amount)
 
 ```{r}
 #étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
-freMPL5.Tree.prune.Amount=prune(freMPL5.Tree.Amount,cp= 1.1205e-02 )
+freMPL5.Tree.prune.Amount=prune(freMPL5.Tree.Amount,cp= 8.7436e-03 )
 rpart.plot(freMPL5.Tree.prune.Amount)
 ```
 
@@ -119,19 +119,7 @@ mse <- mean((predic - cout.test$ClaimAmount)^2)
 mse
 
 ```
-
 ```{r}
 
-
-glm_tree_lognormale1 <- glmtree(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data = cout.train, family = gaussian(link = "log"))
-plot(glm_tree_lognormale1)
-
-
-```
-
-
-```{r}
-predglmT2 <- predict(glm_tree_lognormale1, newdata = cout.test)
-mse <- mean((predglmT2 - cout.train$ClaimAmount)^2)
-mse
+summary(freMPL5.Tree.prune.Amount)
 ```

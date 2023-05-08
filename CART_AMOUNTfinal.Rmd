@@ -151,12 +151,17 @@ cat("Nombre de noeuds dans l'arbre CART:", n_nodes, "\n")
 
 summary(freMPL5.Tree.prune.Amount)
 ```
+<<<<<<< HEAD:CART_AMOUNT.Rmd
 
 ## Modèle pour l'échantillon GLM
+=======
+###SEED 123
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd
 
 ```{r}
 
 #Séparation des données en échantillon d'entrainement et de test
+<<<<<<< HEAD:CART_AMOUNT.Rmd
 cout3 <- subset(cout, cout$ClaimAmount <20000)
 set.seed(123)
 perm <- sample(nrow(cout3),80/100*nrow(cout3))
@@ -169,12 +174,34 @@ testCartSEV2.data  <- cout3[-perm,]
 freMPL5.Tree.Amount2 <- rpart(ClaimAmount~MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
                       data=trainCartSEV2.data,
                       control=rpart.control(xval = 20,minbucket = 1, maxdepth=7,cp=0))
+=======
+
+set.seed(123)
+permseed123 <- sample(nrow(cout),80/100*nrow(cout))
+trainCartSEV.data2 <- cout[permseed123,]
+testCartSEV.data2  <- cout[-permseed123,]
+```
+
+
+
+
+```{r}
+#étape de construction de l'arbre maximal
+freMPL5.Tree.Amount2 <- rpart(ClaimAmount~MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+                      data=trainCartSEV.data2,
+                      control=rpart.control(xval = 20,minbucket = 1, maxdepth=8,cp=0))
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd
 #affichage de l'arbre maximal (pré-élagué)
 rpart.plot(freMPL5.Tree.Amount2)
 
 
 ```
 
+<<<<<<< HEAD:CART_AMOUNT.Rmd
+=======
+
+
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd
 ```{r}
 #On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
 plotcp(freMPL5.Tree.Amount2)
@@ -185,39 +212,66 @@ printcp(freMPL5.Tree.Amount2)
 
 #étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
 
+<<<<<<< HEAD:CART_AMOUNT.Rmd
 freMPL5.Tree.prune.Amount2=prune(freMPL5.Tree.Amount2,cp= 7.9285e-03 )
+=======
+freMPL5.Tree.prune.Amount2=prune(freMPL5.Tree.Amount2,cp= 1.1464e-02)
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd
 #affichage de l'arbre final
 rpart.plot(freMPL5.Tree.prune.Amount2)
 ```
 
+<<<<<<< HEAD:CART_AMOUNT.Rmd
+=======
+#l'arbre obtenu est trop grand et mal lisible 
+
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd
 ```{r}
 
 #mse pour le premier arbre pré-élagué
 
+<<<<<<< HEAD:CART_AMOUNT.Rmd
 predic2 <- predict(freMPL5.Tree.Amount2, newdata = testCartSEV2.data)
 mse3 <- mean((predic2 - testCartSEV2.data$ClaimAmount)^2)
 mse3
+=======
+predic2 <- predict(freMPL5.Tree.Amount2, newdata = testCartSEV.data2)
+mse1seed123 <- mean((predic2 - testCartSEV.data2$ClaimAmount)^2)
+mse1seed123
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd
 
 ```
 
 ```{r}
 #mse pour l'arbre final
+<<<<<<< HEAD:CART_AMOUNT.Rmd
 pred2 <- predict(freMPL5.Tree.prune.Amount2, newdata = testCartSEV2.data)
 mse2 <- mean((pred2 - testCartSEV2.data$ClaimAmount)^2)
 mse2
+=======
+pred2 <- predict(freMPL5.Tree.prune.Amount2, newdata = testCartSEV.data2)
+mseseed123 <- mean((pred2 - testCartSEV.data2$ClaimAmount)^2)
+mseseed123
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd
 
 ```
 
 ```{r}
 #rmse pour l'arbre final
 
+<<<<<<< HEAD:CART_AMOUNT.Rmd
 rmse2 <- sqrt(mse2)
 rmse2
+=======
+rmseseed123 <- sqrt(mseseed123)
+rmseseed123
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd
 
 ```
 
 ```{r}
 #mae pour l'arbre final
+<<<<<<< HEAD:CART_AMOUNT.Rmd
 pred2 <- predict(freMPL5.Tree.prune.Amount2, newdata = testCartSEV2.data)
 mae2 <- mean(abs(pred2 - testCartSEV2.data$ClaimAmount))
 mae2
@@ -251,3 +305,10 @@ cat("Nombre de noeuds dans l'arbre CART:", n_nodes2, "\n")
 
 summary(freMPL5.Tree.prune.Amount2)
 ```
+=======
+
+maeseed123 <- mean(abs(pred2 - testCartSEV.data2$ClaimAmount))
+maeseed123
+
+```
+>>>>>>> 495a901833f8a145ef10275dbc45640d5b84bd79:CART_AMOUNTfinal.Rmd

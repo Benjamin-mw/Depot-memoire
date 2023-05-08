@@ -67,7 +67,7 @@ summary(freMPL5$Sinistres2)
 ```
 
 ```{r}
-set.seed(seed = 192)
+set.seed(seed = 191)
 echantillon <- sample(c(TRUE, FALSE), nrow(freMPL5), replace=TRUE, prob=c(0.8,0.2))
 train  <- freMPL5[echantillon, ]
 test   <- freMPL5[!echantillon, ]
@@ -111,7 +111,7 @@ Nous allons introduire plusieurs modèles. Un modèle vide puis des modèles ple
 
 ### Lien log
 
-```{r, message = FALSE, warning = FALSE}
+```{r}
 
 mod0 <- glm(ClaimInd ~ 1, data = train, family = binomial(link = log))
 summary(mod0)
@@ -131,12 +131,12 @@ summary(modFull)
 ```
 
 ```{r}
-modBoth = step(modFull, mod0, trace=F,direction = c('both'))
-summary(modBoth)
+#modBoth = step(modFull, mod0, trace=T,direction = c('both'))
+#summary(modBoth)
 ```
 
 ```{r}
-2*as.numeric(logLik(modBoth))
+#2*as.numeric(logLik(modBoth))
 ```
 
 Grâce à cette méthode nous obtenons un candidat pour notre modélisation.
@@ -205,15 +205,16 @@ summary(modFull)
 Un élément important à prendre en compte dans l'analyse des données est le traitement des outliers. Voyons si nous observons des candidats potentiels par lecture graphique
 
 ```{r}
-plot(modBoth)
+modFull <- glm(ClaimInd ~ MariStat+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+Risque+BonusMalus+Categ+DrivAge_fact, data = train, family = binomial(link = logit))
+plot(modFull)
 ```
 
 Test pour voir si il y a des outliers :
 
 ```{r}
-influenceIndexPlot(modBoth)
+influenceIndexPlot(modFull)
 
-outlierTest(modBoth)
+outlierTest(modFull)
 ```
 
 Si p-Bonferroni \>0,05 alors on conserve l'hyptohèse que ce n'est pas un outlier.
@@ -225,7 +226,7 @@ Il n'y a donc pas d'outlier ici dans ce modèle.
 ### Evaluation du modèle sur les données tests
 
 ```{r}
-estimation <- modBoth$fitted.values
+estimation <- modFull$fitted.values
 hist(estimation)
 ```
 
@@ -234,8 +235,8 @@ hist(estimation)
 #### RMSE
 
 ```{r}
-pred=predict.glm(modBoth, newdata = test, type = "response")
-RMSE_test <- sqrt(mean((prediction - test$ClaimInd)^2))
+pred=predict.glm(modFull, newdata = test, type = "response")
+RMSE_test <- sqrt(mean((pred - test$ClaimInd)^2))
 RMSE_test
 ```
 
@@ -244,6 +245,7 @@ RMSE_test
 #### Sur le jeu de données train
 
 ```{r}
+pred=prediction(modFull$fitted.values, train$ClaimInd)
 perf=performance(pred,"tpr", "fpr")
 
 auc_ROCR <- performance(pred, measure = "auc")
@@ -253,8 +255,8 @@ auc_ROCR <- performance(pred, measure = "auc")
 #### Sur le jeu de données test
 
 ```{r warning = FALSE}
-prev_step <- predict(modBoth,newdata=test,type="response")
-prev_prob <- data.frame(complet=predict(modFull,newdata=test, type="response"),step=predict(modBoth,newdata=test,type="response"))
+prev_step <- predict(modFull,newdata=test,type="response")
+prev_prob <- data.frame(complet=predict(modFull,newdata=test, type="response"),vide=predict(mod0,newdata=test,type="response"))
 head(round(prev_prob,3), n=3)
 prev_class <- ifelse(prev_prob>0.2, 1, 0)
 head(prev_class, n=3)
@@ -262,7 +264,7 @@ mean(as.factor(prev_class[,1])==test$ClaimInd)
 mean(as.factor(prev_class[,2])==test$ClaimInd)
 
 
-df_roc <- prev_prob %>% mutate(obs=as.numeric(test$ClaimInd)) %>% gather(key=methode,value=score,complet,step)
+df_roc <- prev_prob %>% mutate(obs=as.numeric(test$ClaimInd)) %>% gather(key=methode,value=score,complet,vide)
 ggplot(df_roc, aes(m=score, d=obs,color=methode))+ geom_roc()
 ```
 
@@ -271,9 +273,9 @@ ggplot(df_roc, aes(m=score, d=obs,color=methode))+ geom_roc()
 #### Sur le jeu de données train
 
 ```{r}
-estimation <- modBoth$fitted.values
+estimation <- modFull$fitted.values
 hist(estimation)
-score <- ifelse(predict(modBoth,train,type="response") >.1, 1, 0)
+score <- ifelse(predict(modFull,train,type="response") >.1, 1, 0)
 confusion.mat = table(train$ClaimInd, score)  
 fauxneg = confusion.mat[2,1]
 fauxpos = confusion.mat[1,2]
@@ -291,9 +293,9 @@ confusion.mat
 #### Sur le jeu de données test
 
 ```{r}
-estimation <- modBoth$fitted.values
+estimation <- modFull$fitted.values
 hist(estimation)
-score <- ifelse(predict(modBoth,test,type="response") >.2, 1, 0)
+score <- ifelse(predict(modFull,test,type="response") >.2, 1, 0)
 confusion.mat = table(test$ClaimInd, score)  
 fauxneg = confusion.mat[2,1]
 fauxpos = confusion.mat[1,2]
@@ -456,11 +458,6 @@ summary(modFull_3)
 
 Ici, l'AIC n'étant pas défini, on ne peut pas utiliser une méthode Both, Backward ou Forward classique avec ce critère.
 
-```{r}
-RMSE_3_train <- sqrt(mean(modFull_3$residuals^2))
-RMSE_3_train
-```
-
 Cette modélisation ne change pas vraiment de la modélisation de Poisson classique puisqu'il n'y a pas de surdispersion dans les données.
 
 # 3) Choix final de la modélisation et amélioration du modèle
@@ -596,13 +593,6 @@ L'AIC n'est pas défini pour les quasi-Poisson sur R. Cependant, on remaque qu'o
 ```{r}
 estimation3 <- modFull_3$fitted.values
 hist(estimation3)
-```
-
-##### RMSE
-
-```{r}
-RMSE_train <- sqrt(mean(modFull_3$residuals^2))
-RMSE_train
 ```
 
 ##### Table de confusion

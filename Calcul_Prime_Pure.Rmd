@@ -1,0 +1,132 @@
+---
+title: "Calcul_Prime_Pure"
+author: "Dudot Lucas - Lapaz Eudes - Moinard Benjamin - Nanoux Louis"
+date: "2023-05-08"
+output: html_document
+---
+
+```{r echo= FALSE}
+library(rpart)
+library(rpart.plot)
+library(sp)
+library(CASdatasets)
+library(party)
+library(partykit)
+library(ROCR)
+library(vcd)
+```
+
+```{r echo = FALSE}
+data(freMPL5)
+#Création d'une variable de sinistralité
+freMPL5$Sinistres = freMPL5$ClaimInd/freMPL5$Exposure
+freMPL5$Sinistres2 = round(freMPL5$Sinistres)
+
+#passer en variables catégorielles
+freMPL5$HasKmLimit <- factor(freMPL5$HasKmLimit)
+freMPL5$ClaimInd <- factor(freMPL5$ClaimInd)
+
+#segmentation des tranches d'âge
+freMPL5$DrivAge_fact <- cut(freMPL5$DrivAge, c(20,25,30,35,40,45,50,58,65,120), include.lowest = TRUE)
+
+#Découpage CSP
+freMPL5$Categ <-  ifelse(freMPL5$SocioCateg %in% c("CSP46","CSP48"), "Categ1",
+ifelse(freMPL5$SocioCateg %in% c("CSP50","CSP55"), "Categ2",
+ifelse(freMPL5$SocioCateg %in% c("CSP60"),"Categ3",
+ifelse(freMPL5$SocioCateg %in% c("CSP42","CSP1", "CSP66"),"Categ4","Categ0"))))
+freMPL5$Categ = factor(freMPL5$Categ)
+
+#découpage RiskArea
+freMPL5$RiskArea <- ifelse(freMPL5$RiskArea %in% c(1,2,3,12,13), "ZoneRisque1",
+ifelse(freMPL5$RiskArea %in% c(5,6,7,8,9), "ZoneRisque2",
+ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
+ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
+
+freMPL5$RiskArea <- factor(freMPL5$RiskArea)
+
+set.seed(191)
+```
+
+# Sévérité : modélisation finale
+
+Nous rappelons le modèle de sévérité obtenu par **modélisation GLM**.
+
+```{r echo=FALSE}
+cout <- freMPL5[freMPL5$ClaimInd == 1,]
+cout3 <- subset(cout, cout$ClaimAmount <20000)
+
+perm <- sample(nrow(cout3),80/100*nrow(cout3))
+train <- cout3[perm,]
+test <- cout3[-perm,]
+```
+
+```{r}
+gamma.log_1 <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea+RiskArea*MariStat+ClaimNbResp*ClaimNbNonResp,data = train, family = Gamma(link = "log"))
+summary(gamma.log_1)
+```
+
+# Fréquence : modélisation finale
+
+Nous rappelons le modèle de fréquence obtenu par **modélisation en arbre GLM.**
+
+```{r echo = FALSE}
+train.index <- sample(1:nrow(freMPL5), size=0.8*nrow(freMPL5), replace=FALSE)
+train <- freMPL5[train.index,]
+test <- freMPL5[-train.index,]
+```
+
+```{r}
+glm_tree_poi_log <- glmtree(Sinistres2 ~ ClaimNbNonResp + ClaimNbParking+ ClaimNbFireTheft + ClaimNbWindscreen + BonusMalus + OutUseNb +ClaimNbResp | RiskArea + MariStat + VehUsage + HasKmLimit +DrivAge_fact + Categ,
+  data = train , maxdepth = 6 , family = poisson(link="log"))
+```
+
+```{r}
+glm_freq <- glm(Sinistres2 ~ ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+DrivAge_fact+RiskArea+MariStat+HasKmLimit+Categ+VehUsage, data = train, family = poisson(link = "log"))
+summary(glm_freq)
+```
+
+# Exemples de primes
+
+Créons le dataset des individus décrits dans le mémoire (Chapitre 6).
+
+```{r}
+titre <- c("MariStat","VehUsage","ClaimNbResp", "ClaimNbNonResp","ClaimNbParking","ClaimNbFireTheft","ClaimNbWindscreen", "OutUseNb","RiskArea", "BonusMalus","DrivAge_fact","Categ", "HasKmLimit")
+
+personne1 <- c("Alone","Private+trip to office",2,0,0,0,1,1,"ZoneRisque1",120,"[20,25]","Categ1", 0)
+
+personne2 <- c("Other","Private",0,2,0,0,0,1,"ZoneRisque1",75,"(65,120]","Categ3", 0)
+
+personne3 <- c("Other","Private",0,0,2,0,2,0,"ZoneRisque1",60,"(30,35]","Categ2", 0)
+
+individus_1 <- data.frame(personne1,personne2,personne3)
+individus <- data.frame(t(individus_1))
+colnames(individus) <- titre
+
+individus$ClaimNbResp = as.numeric(individus$ClaimNbResp)
+individus$ClaimNbNonResp = as.numeric(individus$ClaimNbNonResp)
+individus$ClaimNbParking = as.numeric(individus$ClaimNbParking)
+individus$ClaimNbFireTheft = as.numeric(individus$ClaimNbFireTheft)
+individus$ClaimNbWindscreen = as.numeric(individus$ClaimNbWindscreen)
+individus$OutUseNb = as.numeric(individus$OutUseNb)
+individus$BonusMalus = as.numeric(individus$BonusMalus)
+```
+
+```{r}
+sev = predict(gamma.log_1, individus,type="response")
+freq = predict(glm_tree_poi_log, individus, type="response")
+prime_pure = sev*freq /12
+sev
+freq
+prime_pure
+```
+
+```{r}
+sev = predict(gamma.log_1, test,type="response")
+freq = predict(glm_tree_poi_log, test, type="response")
+prime_pure = sev*freq /12
+min(prime_pure)
+max(prime_pure)
+mean(prime_pure)
+```
+
+Cette pertie servira de critique pour la tarification obtenue.

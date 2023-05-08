@@ -80,7 +80,7 @@ BIC(glm_tree_bin_logit)
 
 ```{r}
 
-estimation_bin_logit <- predict(glm_tree_bin_logit, newdata = test)
+estimation_bin_logit <- predict(glm_tree_bin_logit, newdata = test,type="response")
 mse_bin_logit <- mean((estimation_bin_logit- test$ClaimInd)^2)
 mse_bin_logit
 ```
@@ -90,59 +90,7 @@ MAE_poi_bin_logit <-mean(abs(estimation_bin_logit - test$ClaimInd))
 MAE_poi_bin_logit
 ```
 
-```{r}
-pred_bin_logit=prediction(estimation_bin_logit, test$ClaimInd)
-pred_bin_logit
-```
-
-```{r}
-perf_bin_logit=performance(pred_bin_logit,"tpr", "fpr")
-
-auc_ROCR_bin_logit <- performance(pred_bin_logit, measure = "auc")
-(auc_ROCR_bin_logit <- round(auc_ROCR_bin_logit@y.values[[1]],3) )
-```
-
-```{r}
-summary(estimation_bin_logit)
-summary(test$ClaimInd)
-```
-
-#### Table de confusion
-
-##### Sur l'échantillon train
-
-```{r}
-score <- ifelse(predict(glm_tree_bin_logit,train,type="response") >.2, 1, 0)
-confusion.mat = table(train$ClaimInd, score)  
-fauxneg = confusion.mat[2,1]
-fauxpos = confusion.mat[1,2]
-vraisneg = confusion.mat[1,1]
-vraispos = confusion.mat[2,2]
-(txerr = (fauxneg+fauxpos) / (fauxneg+fauxpos+vraisneg+vraispos))
-
-sensibilite <- vraispos / (vraispos + fauxneg)   
-precision <- vraispos / (vraispos + fauxpos) 
-specificite <- vraisneg / (vraisneg + fauxpos)
-
-confusion.mat
-```
-
-##### Sur l'échantillon train
-
-```{r}
-score <- ifelse(predict(glm_tree_bin_logit,test,type="response") >.2, 1, 0)
-confusion.mat = table(test$ClaimInd, score)  
-fauxneg = confusion.mat[2,1]
-fauxpos = confusion.mat[1,2]
-vraisneg = confusion.mat[1,1]
-vraispos = confusion.mat[2,2]
-(txerr = (fauxneg+fauxpos) / (fauxneg+fauxpos+vraisneg+vraispos))
-sensibilite <- vraispos / (vraispos + fauxneg)   
-precision <- vraispos / (vraispos + fauxpos) 
-specificite <- vraisneg / (vraisneg + fauxpos)
-
-confusion.mat
-```
+Le MSE valant "NA", nous verrons par la suite qye ce problème ne provient pas de l'échantillon (car le MSE est calculable pour la loi de Poisson). Nous ne nous attarderons pas davantage sur ce lien.
 
 ### B) Lien log
 
@@ -153,31 +101,7 @@ glm_tree_bin_log <- glmtree(ClaimInd ~ RiskArea + MariStat+VehUsage+HasKmLimit+R
 plot(glm_tree_bin_log)
 ```
 
-```{r}
-
-AIC(glm_tree_bin_log)
-BIC(glm_tree_bin_log)
-```
-
-```{r}
-
-estimation_bin_log <- predict(glm_tree_bin_log, newdata = test)
-mse_bin_log <- mean((estimation_bin_log - test$ClaimInd)^2)
-mse_bin_log
-```
-
-```{r}
-pred_bin_log=prediction(estimation_bin_log, test$ClaimInd)
-pred_bin_logit
-```
-
-```{r}
-perf_bin_log=performance(pred_bin_log,"tpr", "fpr")
-
-auc_ROCR_bin_log <- performance(pred_bin_log, measure = "auc")
-(auc_ROCR_bin_log <- round(auc_ROCR_bin_log@y.values[[1]],3) )
-
-```
+"Error: impossible de trouver un jeu de coefficients correct : prière de fournir des valeurs initiales" : nous ne pourrons pas exploiter davantage ce lien.
 
 ### C) Lien probit
 
@@ -194,22 +118,12 @@ BIC(glm_tree_bin_probit)
 
 ```{r}
 
-estimation_bin_probit <- predict(glm_tree_bin_probit, newdata = test)
+estimation_bin_probit <- predict(glm_tree_bin_probit, newdata = test,type="response")
 mse_bin_probit <- mean((estimation_bin_probit - test$ClaimInd)^2)
 mse_bin_probit
 ```
 
-```{r}
-pred_bin_probit=prediction(estimation_bin_probit, test$ClaimInd)
-pred_bin_probit
-```
-
-```{r}
-perf_bin_probit=performance(pred_bin_probit,"tpr", "fpr")
-
-auc_ROCR_bin_probit <- performance(pred_bin_probit, measure = "auc")
-(auc_ROCR_bin_probit <- round(auc_ROCR_bin_probit@y.values[[1]],3) )
-```
+Pour les mêmes raisons que le lien logit, nous ne pourrons pas exploiter cette modélisation.
 
 ## II) Arbre GLM Poisson
 
@@ -229,7 +143,7 @@ BIC(glm_tree_poi_log)
 ```
 
 ```{r}
-estimation_poi_log <- predict(glm_tree_poi_log, newdata = test)
+estimation_poi_log <- predict(glm_tree_poi_log, newdata = test,type="response")
 mse_poi_log <- mean((estimation_poi_log - test$Sinistres2)^2)
 mse_poi_log
 ```

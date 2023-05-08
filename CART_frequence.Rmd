@@ -128,3 +128,77 @@ MAEsev
 importance2 <- round(freMPL5.Tree.prune.sinpois$variable.importance/sum(freMPL5.Tree.prune.sinpois$variable.importance)*100, 2)
 importance2
 ```
+###SEED 123 
+
+```{r}
+
+#Séparation des données en échantillon d'entrainement et de test
+
+set.seed(123)
+perm2 <- sample(nrow(freMPL5),80/100*nrow(freMPL5))
+trainCartfreq.data2 <- freMPL5[perm2,]
+testCartfreq.data2  <- freMPL5[-perm2,]
+```
+
+
+
+```{r}
+#élaboration de l'arbre "maximal" avec pré-élagage
+freMPL5.Tree.sinpois2 <- rpart(Sinistres2 ~  MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact, data=trainCartfreq.data2, method="poisson", control=rpart.control(xval = 10, minbucket=1,maxdepth=10, cp=0))
+
+#affichage de l'arbre "maximal" avec pré-élagage
+
+rpart.plot(freMPL5.Tree.sinpois2)
+
+```
+
+```{r}
+#MSE pour l'arbre pré-élagué
+predictionSinPoi3 <- predict(freMPL5.Tree.sinpois2, newdata=testCartfreq.data)
+
+msefreq3 <- mean((predictionSinPoi3 - testCartfreq.data2$Sinistres2)^2)
+msefreq3
+```
+
+```{r}
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp
+plotcp(freMPL5.Tree.sinpois2)
+printcp(freMPL5.Tree.sinpois2)
+```
+
+
+```{r}
+
+#étape d'élagage de l'arbre avec un cp choisi
+
+freMPL5.Tree.prune.sinpois2=prune(freMPL5.Tree.sinpois2,cp= 1.2025e-02)
+rpart.plot(freMPL5.Tree.prune.sinpois2)
+```
+```{r}
+predictionSinPoi4 <- predict(freMPL5.Tree.prune.sinpois2, newdata=testCartfreq.data2)
+
+```
+
+```{r}
+
+#MSE pour l'arbre élagué final
+
+mse123 <- mean((predictionSinPoi4 - testCartfreq.data2$Sinistres2)^2)
+mse123
+```
+
+
+
+```{r}
+
+#RMSE
+
+rmse123 <- sqrt(mseseed123)
+rmse123
+```
+
+```{r}
+#MAE
+MAE123 <- mean(abs(predictionSinPoi4 - testCartfreq.data$Sinistres2))
+MAE123
+```

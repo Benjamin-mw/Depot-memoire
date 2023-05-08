@@ -159,3 +159,81 @@ cat("Nombre de noeuds dans l'arbre CART:", n_nodes, "\n")
 
 summary(freMPL5.Tree.prune.Amount)
 ```
+###SEED 123
+
+```{r}
+
+#Séparation des données en échantillon d'entrainement et de test
+
+set.seed(123)
+permseed123 <- sample(nrow(cout),80/100*nrow(cout))
+trainCartSEV.data2 <- cout[permseed123,]
+testCartSEV.data2  <- cout[-permseed123,]
+```
+
+
+
+
+```{r}
+#étape de construction de l'arbre maximal
+freMPL5.Tree.Amount2 <- rpart(ClaimAmount~MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+                      data=trainCartSEV.data2,
+                      control=rpart.control(xval = 20,minbucket = 1, maxdepth=8,cp=0))
+#affichage de l'arbre maximal (pré-élagué)
+rpart.plot(freMPL5.Tree.Amount2)
+
+
+```
+
+
+
+```{r}
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
+plotcp(freMPL5.Tree.Amount2)
+printcp(freMPL5.Tree.Amount2)
+```
+
+```{r}
+
+#étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
+
+freMPL5.Tree.prune.Amount2=prune(freMPL5.Tree.Amount2,cp= 1.1464e-02)
+#affichage de l'arbre final
+rpart.plot(freMPL5.Tree.prune.Amount2)
+```
+
+#l'arbre obtenu est trop grand et mal lisible 
+
+```{r}
+
+#mse pour le premier arbre pré-élagué
+
+predic2 <- predict(freMPL5.Tree.Amount2, newdata = testCartSEV.data2)
+mse1seed123 <- mean((predic2 - testCartSEV.data2$ClaimAmount)^2)
+mse1seed123
+
+```
+
+```{r}
+#mse pour l'arbre final
+pred2 <- predict(freMPL5.Tree.prune.Amount2, newdata = testCartSEV.data2)
+mseseed123 <- mean((pred2 - testCartSEV.data2$ClaimAmount)^2)
+mseseed123
+
+```
+
+```{r}
+#rmse pour l'arbre final
+
+rmseseed123 <- sqrt(mseseed123)
+rmseseed123
+
+```
+
+```{r}
+#mae pour l'arbre final
+
+maeseed123 <- mean(abs(pred2 - testCartSEV.data2$ClaimAmount))
+maeseed123
+
+```

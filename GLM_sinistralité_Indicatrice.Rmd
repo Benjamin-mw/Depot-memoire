@@ -458,11 +458,6 @@ summary(modFull_3)
 
 Ici, l'AIC n'étant pas défini, on ne peut pas utiliser une méthode Both, Backward ou Forward classique avec ce critère.
 
-```{r}
-RMSE_3_train <- sqrt(mean(modFull_3$residuals^2))
-RMSE_3_train
-```
-
 Cette modélisation ne change pas vraiment de la modélisation de Poisson classique puisqu'il n'y a pas de surdispersion dans les données.
 
 # 3) Choix final de la modélisation et amélioration du modèle
@@ -598,13 +593,6 @@ L'AIC n'est pas défini pour les quasi-Poisson sur R. Cependant, on remaque qu'o
 ```{r}
 estimation3 <- modFull_3$fitted.values
 hist(estimation3)
-```
-
-##### RMSE
-
-```{r}
-RMSE_train <- sqrt(mean(modFull_3$residuals^2))
-RMSE_train
 ```
 
 ##### Table de confusion

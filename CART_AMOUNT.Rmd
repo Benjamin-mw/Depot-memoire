@@ -6,7 +6,6 @@ date: "2023-04-20"
 
 ### CART sur la sévérité
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -46,13 +45,14 @@ ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
 ```
 
-
 ```{r, error = TRUE}
 
 #Prise en compte uniquement des données ayant au moins un sinistre
 
 cout <- freMPL5[freMPL5$ClaimInd == 1,]
 ```
+
+## Modèle entier
 
 ```{r}
 
@@ -64,9 +64,6 @@ trainCartSEV.data <- cout[perm,]
 testCartSEV.data  <- cout[-perm,]
 ```
 
-
-
-
 ```{r}
 #étape de construction de l'arbre maximal
 freMPL5.Tree.Amount <- rpart(ClaimAmount~MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
@@ -77,8 +74,6 @@ rpart.plot(freMPL5.Tree.Amount)
 
 
 ```
-
-
 
 ```{r}
 #On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
@@ -129,7 +124,6 @@ mae
 
 ```
 
-
 ```{r}
 #moyenne du montant des sinistres 
 mean_pred <- mean(pred)
@@ -153,9 +147,107 @@ n_nodes <- nrow(freMPL5.Tree.Amount$frame)
 cat("Nombre de noeuds dans l'arbre CART:", n_nodes, "\n")
 ```
 
-
-
 ```{r}
 
 summary(freMPL5.Tree.prune.Amount)
+```
+
+## Modèle pour l'échantillon GLM
+
+```{r}
+
+#Séparation des données en échantillon d'entrainement et de test
+cout3 <- subset(cout, cout$ClaimAmount <20000)
+set.seed(123)
+perm <- sample(nrow(cout3),80/100*nrow(cout3))
+trainCartSEV2.data <- cout3[perm,]
+testCartSEV2.data  <- cout3[-perm,]
+```
+
+```{r}
+#étape de construction de l'arbre maximal
+freMPL5.Tree.Amount2 <- rpart(ClaimAmount~MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact,
+                      data=trainCartSEV2.data,
+                      control=rpart.control(xval = 20,minbucket = 1, maxdepth=7,cp=0))
+#affichage de l'arbre maximal (pré-élagué)
+rpart.plot(freMPL5.Tree.Amount2)
+
+
+```
+
+```{r}
+#On utilise plotcp pour afficher la courbe du taux d'erreur relatif en fonction des cp, on choisi un cp qui minimise ce taux d'erreur pour une taille correcte
+plotcp(freMPL5.Tree.Amount2)
+printcp(freMPL5.Tree.Amount2)
+```
+
+```{r}
+
+#étape d'élagage de l'arbre avec un cp qui minimise le taux d'erreur relatif tout en donnant un arbre de taille correcte
+
+freMPL5.Tree.prune.Amount2=prune(freMPL5.Tree.Amount2,cp= 7.9285e-03 )
+#affichage de l'arbre final
+rpart.plot(freMPL5.Tree.prune.Amount2)
+```
+
+```{r}
+
+#mse pour le premier arbre pré-élagué
+
+predic2 <- predict(freMPL5.Tree.Amount2, newdata = testCartSEV2.data)
+mse3 <- mean((predic2 - testCartSEV2.data$ClaimAmount)^2)
+mse3
+
+```
+
+```{r}
+#mse pour l'arbre final
+pred2 <- predict(freMPL5.Tree.prune.Amount2, newdata = testCartSEV2.data)
+mse2 <- mean((pred2 - testCartSEV2.data$ClaimAmount)^2)
+mse2
+
+```
+
+```{r}
+#rmse pour l'arbre final
+
+rmse2 <- sqrt(mse2)
+rmse2
+
+```
+
+```{r}
+#mae pour l'arbre final
+pred2 <- predict(freMPL5.Tree.prune.Amount2, newdata = testCartSEV2.data)
+mae2 <- mean(abs(pred2 - testCartSEV2.data$ClaimAmount))
+mae2
+
+```
+
+```{r}
+#moyenne du montant des sinistres 
+mean_pred2 <- mean(pred2)
+mean_pred2
+```
+
+```{r}
+#importance des variables dans l'arbre final
+importance2 <- round(freMPL5.Tree.prune.Amount2$variable.importance/sum(freMPL5.Tree.prune.Amount2$variable.importance)*100, 2)
+importance2
+```
+
+```{r}
+#affichage de la courbe de R2 en fonction du nombre de division
+rsq.rpart(freMPL5.Tree.Amount2)
+```
+
+```{r}
+#nombre de noeuds dans le premier arbre
+n_nodes2 <- nrow(freMPL5.Tree.Amount2$frame)
+cat("Nombre de noeuds dans l'arbre CART:", n_nodes2, "\n")
+```
+
+```{r}
+
+summary(freMPL5.Tree.prune.Amount2)
 ```

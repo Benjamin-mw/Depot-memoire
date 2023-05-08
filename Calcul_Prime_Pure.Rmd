@@ -112,8 +112,21 @@ individus$BonusMalus = as.numeric(individus$BonusMalus)
 ```
 
 ```{r}
-sev = predict(gamma.log_1, individus)
-freq = predict(glm_tree_poi_log, individus)
-prime_pure = exp(sev+freq)
+sev = predict(gamma.log_1, individus,type="response")
+freq = predict(glm_tree_poi_log, individus, type="response")
+prime_pure = sev*freq /12
+sev
+freq
 prime_pure
 ```
+
+```{r}
+sev = predict(gamma.log_1, test,type="response")
+freq = predict(glm_tree_poi_log, test, type="response")
+prime_pure = sev*freq /12
+min(prime_pure)
+max(prime_pure)
+mean(prime_pure)
+```
+
+Cette pertie servira de critique pour la tarification obtenue.

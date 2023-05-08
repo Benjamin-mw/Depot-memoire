@@ -43,29 +43,77 @@ ifelse(freMPL5$RiskArea %in% c(10,11), "ZoneRisque3",
 ifelse(freMPL5$RiskArea %in% c(4), "ZoneRisque4", NA))))
 
 freMPL5$RiskArea <- factor(freMPL5$RiskArea)
-```
 
-```{r echo = FALSE}
-set.seed(123) 
-train.index <- sample(1:nrow(freMPL5), size=0.8*nrow(freMPL5), replace=FALSE)
-train <- freMPL5[train.index,]
-test <- freMPL5[-train.index,]
+set.seed(191)
 ```
 
 # Sévérité : modélisation finale
 
 Nous rappelons le modèle de sévérité obtenu par **modélisation GLM**.
 
-```{r}
+```{r echo=FALSE}
+cout <- freMPL5[freMPL5$ClaimInd == 1,]
+cout3 <- subset(cout, cout$ClaimAmount <20000)
 
+perm <- sample(nrow(cout3),80/100*nrow(cout3))
+train <- cout3[perm,]
+test <- cout3[-perm,]
+```
+
+```{r}
+gamma.log_1 <- glm(ClaimAmount ~ MariStat+Categ+VehUsage+HasKmLimit+ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+RiskArea+BonusMalus+DrivAge_fact+DrivAge_fact*RiskArea+RiskArea*MariStat+ClaimNbResp*ClaimNbNonResp,data = train, family = Gamma(link = "log"))
+summary(gamma.log_1)
 ```
 
 # Fréquence : modélisation finale
 
 Nous rappelons le modèle de fréquence obtenu par **modélisation en arbre GLM.**
 
-```{r}
+```{r echo = FALSE}
+train.index <- sample(1:nrow(freMPL5), size=0.8*nrow(freMPL5), replace=FALSE)
+train <- freMPL5[train.index,]
+test <- freMPL5[-train.index,]
+```
 
+```{r}
+glm_tree_poi_log <- glmtree(Sinistres2 ~ ClaimNbNonResp + ClaimNbParking+ ClaimNbFireTheft + ClaimNbWindscreen + BonusMalus + OutUseNb +ClaimNbResp | RiskArea + MariStat + VehUsage + HasKmLimit +DrivAge_fact + Categ,
+  data = train , maxdepth = 6 , family = poisson(link="log"))
+```
+
+```{r}
+glm_freq <- glm(Sinistres2 ~ ClaimNbResp+ClaimNbNonResp+ClaimNbParking+ClaimNbFireTheft+ClaimNbWindscreen+OutUseNb+BonusMalus+DrivAge_fact+RiskArea+MariStat+HasKmLimit+Categ+VehUsage, data = train, family = poisson(link = "log"))
+summary(glm_freq)
 ```
 
 # Exemples de primes
+
+Créons le dataset des individus décrits dans le mémoire (Chapitre 6).
+
+```{r}
+titre <- c("MariStat","VehUsage","ClaimNbResp", "ClaimNbNonResp","ClaimNbParking","ClaimNbFireTheft","ClaimNbWindscreen", "OutUseNb","RiskArea", "BonusMalus","DrivAge_fact","Categ", "HasKmLimit")
+
+personne1 <- c("Alone","Private+trip to office",2,0,0,0,1,1,"ZoneRisque1",120,"[20,25]","Categ1", 0)
+
+personne2 <- c("Other","Private",0,2,0,0,0,1,"ZoneRisque1",75,"(65,120]","Categ3", 0)
+
+personne3 <- c("Other","Private",0,0,2,0,2,0,"ZoneRisque1",60,"(30,35]","Categ2", 0)
+
+individus_1 <- data.frame(personne1,personne2,personne3)
+individus <- data.frame(t(individus_1))
+colnames(individus) <- titre
+
+individus$ClaimNbResp = as.numeric(individus$ClaimNbResp)
+individus$ClaimNbNonResp = as.numeric(individus$ClaimNbNonResp)
+individus$ClaimNbParking = as.numeric(individus$ClaimNbParking)
+individus$ClaimNbFireTheft = as.numeric(individus$ClaimNbFireTheft)
+individus$ClaimNbWindscreen = as.numeric(individus$ClaimNbWindscreen)
+individus$OutUseNb = as.numeric(individus$OutUseNb)
+individus$BonusMalus = as.numeric(individus$BonusMalus)
+```
+
+```{r}
+sev = predict(gamma.log_1, individus)
+freq = predict(glm_tree_poi_log, individus)
+prime_pure = exp(sev+freq)
+prime_pure
+```
